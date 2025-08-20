@@ -20,7 +20,7 @@ services:
       # - ./config.yml:/app/config.yml
     expose:
       - "5000"
-    command: ["./start.sh","web"]
+    command: ["/start.sh","web"]
     healthcheck:
       test:
         - "CMD-SHELL"

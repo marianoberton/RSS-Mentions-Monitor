@@ -18,8 +18,11 @@ COPY . .
 
 # Copio start.sh a /start.sh, normalizo EOL y doy permisos
 COPY start.sh /start.sh
-RUN sed -i 's/\r$//' /start.sh && chmod +x /start.sh
+RUN sed -i 's/\r$//' /start.sh && chmod +x /start.sh \
+ && sed -i 's/\r$//' /app/start.sh && chmod +x /app/start.sh
 
+# (NECESARIO si tu monitor usa Playwright)
+RUN python -m pip install --no-cache-dir playwright && playwright install --with-deps
 # (opcional) si vas a usar Playwright:
 # RUN python -m pip install --no-cache-dir playwright && playwright install --with-deps
 
