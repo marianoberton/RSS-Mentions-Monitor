@@ -5,11 +5,16 @@ tz: "America/Argentina/Buenos_Aires"
 
 # Keywords a monitorear (configurar según necesidades)
 keywords:
-  - "Javier Milei"
-  - "Oscar Liberman"
-  - "Gustavo Coria"
-  - "Andres de Leo"
-  - "Andrés de Leo"
+  # Notificaciones importantes (inmediatas y destacadas)
+  important:
+    - "Oscar Liberman"
+    - "Gustavo Coria"
+    - "Andres de Leo"
+    - "Andrés de Leo"
+  
+  # Monitoreo estándar
+  standard:
+    - "Javier Milei"
 
 # Feeds RSS a monitorear
 feeds:
