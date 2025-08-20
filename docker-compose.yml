@@ -16,8 +16,6 @@ services:
     volumes:
       - ./data:/app/data
       - ./logs:/app/logs
-      # quita esta línea si no tenés el archivo en repo:
-      # - ./config.yml:/app/config.yml
     expose:
       - "5000"
     command: ["/start.sh","web"]
@@ -37,9 +35,3 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
-    networks:
-      - rss-network
-
-networks:
-  rss-network:
-    driver: bridge
