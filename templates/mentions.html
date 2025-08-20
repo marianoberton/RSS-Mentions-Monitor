@@ -1,0 +1,267 @@
+{% extends "base.html" %}
+
+{% block title %}Menciones - RSS Monitor{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Estadísticas -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Total Menciones</h6>
+                            <h3 class="mb-0">{{ total_mentions }}</h3>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-chat-quote-fill fs-1"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Feeds Activos</h6>
+                            <h3 class="mb-0">{{ available_feeds|length }}</h3>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-rss-fill fs-1"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Palabras Clave</h6>
+                            <h3 class="mb-0">{{ available_keywords|length }}</h3>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-key-fill fs-1"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Última Actualización</h6>
+                            <p class="mb-0">{{ current_time.strftime('%H:%M') }}</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-clock-fill fs-1"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-funnel"></i> Filtros</h6>
+                </div>
+                <div class="card-body">
+                    <form method="GET" action="{{ url_for('mentions') }}" class="row g-3">
+                        <div class="col-md-4">
+                            <label for="feed" class="form-label">Feed:</label>
+                            <select name="feed" id="feed" class="form-select">
+                                <option value="">Todos los feeds</option>
+                                {% for feed in available_feeds %}
+                                    <option value="{{ feed }}" {% if feed == current_feed %}selected{% endif %}>
+                                        {{ feed }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="keyword" class="form-label">Palabra Clave:</label>
+                            <select name="keyword" id="keyword" class="form-select">
+                                <option value="">Todas las palabras</option>
+                                {% for keyword in available_keywords %}
+                                    <option value="{{ keyword }}" {% if keyword == current_keyword %}selected{% endif %}>
+                                        {{ keyword }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary me-2">
+                                <i class="bi bi-search"></i> Filtrar
+                            </button>
+                            <a href="{{ url_for('mentions') }}" class="btn btn-outline-secondary">
+                                <i class="bi bi-x-circle"></i> Limpiar
+                            </a>
+                        </div>
+                        <input type="hidden" name="page" value="1">
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista de menciones -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="bi bi-chat-quote"></i> Menciones
+                        {% if current_feed %}
+                            <span class="badge bg-info ms-2">{{ current_feed }}</span>
+                        {% endif %}
+                        {% if current_keyword %}
+                            <span class="badge bg-success ms-2">{{ current_keyword }}</span>
+                        {% endif %}
+                    </h5>
+                    <span class="badge bg-primary">{{ mentions|length }} menciones en esta página</span>
+                </div>
+                <div class="card-body">
+                    {% if mentions %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Artículo</th>
+                                        <th>Feed</th>
+                                        <th>Palabra Clave</th>
+                                        <th>Contexto</th>
+                                        <th>Fecha</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for mention in mentions %}
+                                        <tr>
+                                            <td>
+                                                <strong>{{ mention.article_title[:60] }}{% if mention.article_title|length > 60 %}...{% endif %}</strong>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-secondary">{{ mention.site }}</span>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-primary">{{ mention.keyword }}</span>
+                                            </td>
+                                            <td>
+                                                <small class="text-muted">
+                                                    {{ mention.where_found[:100] }}{% if mention.where_found|length > 100 %}...{% endif %}
+                                                </small>
+                                            </td>
+                                            <td>
+                                                <small class="text-muted">
+                                                    {{ mention.detected_utc[:19] }}
+                                                </small>
+                                            </td>
+                                            <td>
+                                                <a href="{{ mention.article_link }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                                    <i class="bi bi-box-arrow-up-right"></i> Ver
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="bi bi-chat-quote display-1 text-muted"></i>
+                            <h4 class="text-muted mt-3">No se encontraron menciones</h4>
+                            <p class="text-muted">No hay menciones que coincidan con los filtros seleccionados.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Paginación -->
+    {% if total_pages > 1 %}
+        <div class="row mt-4">
+            <div class="col-12">
+                <nav aria-label="Paginación de menciones">
+                    <ul class="pagination justify-content-center">
+                        {% if has_prev %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('mentions', page=page-1, feed=current_feed, keyword=current_keyword) }}">
+                                    <i class="bi bi-chevron-left"></i> Anterior
+                                </a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link">
+                                    <i class="bi bi-chevron-left"></i> Anterior
+                                </span>
+                            </li>
+                        {% endif %}
+
+                        {% set start_page = [1, page - 2]|max %}
+                        {% set end_page = [total_pages, page + 2]|min %}
+
+                        {% if start_page > 1 %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('mentions', page=1, feed=current_feed, keyword=current_keyword) }}">1</a>
+                            </li>
+                            {% if start_page > 2 %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">...</span>
+                                </li>
+                            {% endif %}
+                        {% endif %}
+
+                        {% for p in range(start_page, end_page + 1) %}
+                            {% if p == page %}
+                                <li class="page-item active">
+                                    <span class="page-link">{{ p }}</span>
+                                </li>
+                            {% else %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('mentions', page=p, feed=current_feed, keyword=current_keyword) }}">{{ p }}</a>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+
+                        {% if end_page < total_pages %}
+                            {% if end_page < total_pages - 1 %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">...</span>
+                                </li>
+                            {% endif %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('mentions', page=total_pages, feed=current_feed, keyword=current_keyword) }}">{{ total_pages }}</a>
+                            </li>
+                        {% endif %}
+
+                        {% if has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('mentions', page=page+1, feed=current_feed, keyword=current_keyword) }}">
+                                    Siguiente <i class="bi bi-chevron-right"></i>
+                                </a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link">
+                                    Siguiente <i class="bi bi-chevron-right"></i>
+                                </span>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

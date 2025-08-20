@@ -1,0 +1,95 @@
+# Configuración optimizada para producción en EasyPanel
+
+# Configuración de zona horaria
+tz: "America/Argentina/Buenos_Aires"
+
+# Keywords a monitorear (configurar según necesidades)
+keywords:
+  - "Javier Milei"
+  - "Oscar Liberman"
+  - "Gustavo Coria"
+  - "Andres de Leo"
+  - "Andrés de Leo"
+
+# Feeds RSS a monitorear
+feeds:
+  # Feeds principales de noticias argentinas
+  - name: "La Nación"
+    url: "https://www.lanacion.com.ar/arc/outboundfeeds/rss/category/politica/?outputType=xml"
+    enabled: true
+    category: "política"
+    
+  - name: "Clarín"
+    url: "https://www.clarin.com/rss/politica/"
+    enabled: true
+    category: "política"
+    
+  - name: "Página/12"
+    url: "https://www.pagina12.com.ar/rss/secciones/el-pais/notas"
+    enabled: true
+    category: "política"
+    
+  - name: "Infobae"
+    url: "https://www.infobae.com/feeds/rss/"
+    enabled: true
+    category: "general"
+    
+  - name: "Ámbito"
+    url: "https://www.ambito.com/rss/politica.xml"
+    enabled: true
+    category: "política"
+    
+  - name: "Perfil"
+    url: "https://www.perfil.com/rss/politica.xml"
+    enabled: true
+    category: "política"
+
+# Configuración de procesamiento
+processing:
+  # Intervalo entre procesamiento de feeds (en minutos)
+  feed_interval: 10
+  
+  # Intervalo para resumen horario (en minutos)
+  summary_interval: 60
+  
+  # Timeout para extracción de contenido (en segundos)
+  content_timeout: 30
+  
+  # Máximo número de artículos a procesar por feed
+  max_articles_per_feed: 50
+  
+  # Reintentos para extracción de contenido
+  content_retries: 3
+
+# Configuración de notificaciones
+notifications:
+  # Habilitar notificaciones inmediatas
+  immediate: true
+  
+  # Habilitar resumen horario
+  hourly_summary: true
+  
+  # Habilitar resumen diario
+  daily_summary: true
+  
+  # Hora para resumen diario (formato 24h)
+  daily_summary_hour: 8
+
+# Configuración de base de datos
+database:
+  # Ruta de la base de datos
+  path: "/app/data/rss_monitor.db"
+  
+  # Días para mantener artículos antiguos
+  retention_days: 30
+
+# Configuración de logs
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  
+# Configuración de la interfaz web
+web:
+  host: "0.0.0.0"
+  port: 5000
+  debug: false

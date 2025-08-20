@@ -1,0 +1,222 @@
+{% extends "base.html" %}
+
+{% block title %}Artículos - RSS Mentions Monitor{% endblock %}
+
+{% block page_title %}Artículos Procesados{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header con estadísticas -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-4">
+                            <h3 class="mb-0">{{ total_articles }}</h3>
+                            <p class="mb-0">Total de Artículos</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h3 class="mb-0">{{ page }}</h3>
+                            <p class="mb-0">Página Actual</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h3 class="mb-0">{{ total_pages }}</h3>
+                            <p class="mb-0">Total de Páginas</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-funnel"></i> Filtros</h6>
+                </div>
+                <div class="card-body">
+                    <form method="GET" action="{{ url_for('articles') }}" class="row g-3">
+                        <div class="col-md-6">
+                            <label for="feed" class="form-label">Feed:</label>
+                            <select name="feed" id="feed" class="form-select">
+                                <option value="">Todos los feeds</option>
+                                {% for feed in available_feeds %}
+                                    <option value="{{ feed }}" {% if feed == current_feed %}selected{% endif %}>
+                                        {{ feed }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary me-2">
+                                <i class="bi bi-search"></i> Filtrar
+                            </button>
+                            <a href="{{ url_for('articles') }}" class="btn btn-outline-secondary">
+                                <i class="bi bi-x-circle"></i> Limpiar
+                            </a>
+                        </div>
+                        <input type="hidden" name="page" value="1">
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista de artículos -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="bi bi-newspaper"></i> Artículos
+                        {% if current_feed %}
+                            <span class="badge bg-info ms-2">{{ current_feed }}</span>
+                        {% endif %}
+                    </h5>
+                    <span class="badge bg-primary">{{ articles|length }} artículos en esta página</span>
+                </div>
+                <div class="card-body">
+                    {% if articles %}
+                        {% for article in articles %}
+                        <div class="card mb-3">
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-8">
+                                        <h6 class="card-title">
+                                            <a href="{{ article.link }}" target="_blank" class="text-decoration-none">
+                                                {{ article.title }}
+                                            </a>
+                                        </h6>
+                                        <p class="card-text">
+                                            <small class="text-muted">
+                                                <i class="bi bi-globe"></i> {{ article.site }} | 
+                                                <i class="bi bi-calendar"></i> {{ article.published_utc }}
+                                            </small>
+                                        </p>
+                                    </div>
+                                    <div class="col-md-4">
+                                        {% if article.hits %}
+                                            <h6>Menciones encontradas:</h6>
+                                            {% for hit in article.hits %}
+                                                <span class="badge bg-success me-1 mb-1">
+                                                    {{ hit[0] }} ({{ hit[1] }})
+                                                </span>
+                                            {% endfor %}
+                                        {% else %}
+                                            <span class="badge bg-secondary">Sin menciones</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="bi bi-inbox display-1 text-muted"></i>
+                            <h4 class="text-muted mt-3">No hay artículos disponibles</h4>
+                            <p class="text-muted">Los artículos aparecerán aquí una vez que el sistema procese los feeds RSS.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Paginación -->
+    {% if total_pages > 1 %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <nav aria-label="Paginación de artículos">
+                <ul class="pagination justify-content-center">
+                    {% if has_prev %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('articles', page=page-1, feed=current_feed) }}">
+                                <i class="bi bi-chevron-left"></i> Anterior
+                            </a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">
+                                <i class="bi bi-chevron-left"></i> Anterior
+                            </span>
+                        </li>
+                    {% endif %}
+
+                    <!-- Páginas numeradas -->
+                    {% set start_page = [1, page - 2]|max %}
+                    {% set end_page = [total_pages, page + 2]|min %}
+                    
+                    {% if start_page > 1 %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('articles', page=1, feed=current_feed) }}">1</a>
+                        </li>
+                        {% if start_page > 2 %}
+                            <li class="page-item disabled">
+                                <span class="page-link">...</span>
+                            </li>
+                        {% endif %}
+                    {% endif %}
+
+                    {% for p in range(start_page, end_page + 1) %}
+                        {% if p == page %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ p }}</span>
+                            </li>
+                        {% else %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('articles', page=p, feed=current_feed) }}">{{ p }}</a>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if end_page < total_pages %}
+                        {% if end_page < total_pages - 1 %}
+                            <li class="page-item disabled">
+                                <span class="page-link">...</span>
+                            </li>
+                        {% endif %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('articles', page=total_pages, feed=current_feed) }}">{{ total_pages }}</a>
+                        </li>
+                    {% endif %}
+
+                    {% if has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('articles', page=page+1, feed=current_feed) }}">
+                                Siguiente <i class="bi bi-chevron-right"></i>
+                            </a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">
+                                Siguiente <i class="bi bi-chevron-right"></i>
+                            </span>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Formatear fechas
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.card-text small').forEach(function(element) {
+            const text = element.innerHTML;
+            // Buscar fechas en formato ISO y formatearlas
+            const dateRegex = /(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})/g;
+            const formattedText = text.replace(dateRegex, function(match) {
+                return moment(match).format('DD/MM/YYYY HH:mm');
+            });
+            element.innerHTML = formattedText;
+        });
+    });
+</script>
+{% endblock %}

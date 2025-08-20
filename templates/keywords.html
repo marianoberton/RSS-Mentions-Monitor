@@ -1,0 +1,253 @@
+{% extends "base.html" %}
+
+{% block title %}Gestión de Palabras Clave - RSS Mentions Monitor{% endblock %}
+{% block page_title %}Gestión de Palabras Clave{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-plus-circle"></i> Agregar Nueva Palabra Clave
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('add_keyword') }}">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="mb-3">
+                                <label for="keyword" class="form-label">Palabra Clave</label>
+                                <input type="text" class="form-control" id="keyword" name="keyword" required 
+                                       placeholder="Ej: Oscar Liberman">
+                                <div class="form-text">La búsqueda no distingue entre mayúsculas y minúsculas</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-plus-lg"></i> Agregar Palabra Clave
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-tags"></i> Palabras Clave Configuradas
+                    <span class="badge bg-light text-dark ms-2">{{ keywords|length }} total</span>
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if keywords %}
+                    <div class="row">
+                        {% for keyword in keywords %}
+                            <div class="col-md-6 col-lg-4 mb-3">
+                                <div class="card border-left-primary h-100">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div class="flex-grow-1">
+                                                <h6 class="card-title text-primary mb-2">
+                                                    <i class="bi bi-tag"></i> {{ keyword }}
+                                                </h6>
+                                                <div class="mb-2">
+                                                    {% if keyword == "Milei" %}
+                                                        <span class="badge bg-info">Solo resúmenes</span>
+                                                    {% elif keyword in ["Oscar Liberman", "Gustavo Coria"] %}
+                                                        <span class="badge bg-warning">Notificaciones importantes</span>
+                                                    {% else %}
+                                                        <span class="badge bg-secondary">Monitoreo estándar</span>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                            <div class="dropdown">
+                                                <button class="btn btn-outline-secondary btn-sm dropdown-toggle" 
+                                                        type="button" data-bs-toggle="dropdown">
+                                                    <i class="bi bi-three-dots-vertical"></i>
+                                                </button>
+                                                <ul class="dropdown-menu">
+                                                    <li>
+                                                        <form method="POST" action="{{ url_for('remove_keyword', keyword=keyword) }}" class="d-inline">
+                                                            <button type="submit" class="dropdown-item text-danger" 
+                                                                    onclick="return confirm('¿Eliminar la palabra clave &quot;{{ keyword }}&quot;?')">
+                                                                <i class="bi bi-trash"></i> Eliminar
+                                                            </button>
+                                                        </form>
+                                                    </li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <!-- Estadísticas de palabras clave -->
+                    <div class="row mt-4">
+                        <div class="col-md-4">
+                            <div class="card border-info">
+                                <div class="card-body text-center">
+                                    <i class="bi bi-info-circle text-info" style="font-size: 2rem;"></i>
+                                    <h4 class="text-info mt-2">{% if 'Milei' in keywords %}1{% else %}0{% endif %}</h4>
+                                    <p class="text-muted mb-0">Solo Resúmenes</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card border-warning">
+                                <div class="card-body text-center">
+                                    <i class="bi bi-exclamation-triangle text-warning" style="font-size: 2rem;"></i>
+                                    <h4 class="text-warning mt-2">{% set count = 0 %}{% if 'Oscar Liberman' in keywords %}{% set count = count + 1 %}{% endif %}{% if 'Gustavo Coria' in keywords %}{% set count = count + 1 %}{% endif %}{{ count }}</h4>
+                                    <p class="text-muted mb-0">Notificaciones Importantes</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card border-secondary">
+                                <div class="card-body text-center">
+                                    <i class="bi bi-search text-secondary" style="font-size: 2rem;"></i>
+                                    <h4 class="text-secondary mt-2">{% set special_keywords = ['Milei', 'Oscar Liberman', 'Gustavo Coria'] %}{% set count = 0 %}{% for keyword in keywords %}{% if keyword not in special_keywords %}{% set count = count + 1 %}{% endif %}{% endfor %}{{ count }}</h4>
+                                    <p class="text-muted mb-0">Monitoreo Estándar</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-tags text-muted" style="font-size: 4rem;"></i>
+                        <h4 class="text-muted mt-3">No hay palabras clave configuradas</h4>
+                        <p class="text-muted">Agrega tu primera palabra clave usando el formulario de arriba</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Información sobre tipos de monitoreo -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card border-info">
+            <div class="card-header bg-info text-white">
+                <h6 class="card-title mb-0">
+                    <i class="bi bi-info-circle"></i> Tipos de Monitoreo
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="d-flex align-items-start mb-3">
+                            <span class="badge bg-info me-3 mt-1">Solo resúmenes</span>
+                            <div>
+                                <h6 class="mb-1">Milei</h6>
+                                <small class="text-muted">Las menciones solo aparecen en los resúmenes horarios, sin notificaciones individuales.</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="d-flex align-items-start mb-3">
+                            <span class="badge bg-warning me-3 mt-1">Importantes</span>
+                            <div>
+                                <h6 class="mb-1">Oscar Liberman, Gustavo Coria</h6>
+                                <small class="text-muted">Notificaciones especiales enviadas en los resúmenes horarios.</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="d-flex align-items-start mb-3">
+                            <span class="badge bg-secondary me-3 mt-1">Estándar</span>
+                            <div>
+                                <h6 class="mb-1">Otras palabras clave</h6>
+                                <small class="text-muted">Monitoreo estándar con registro en base de datos.</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Consejos y mejores prácticas -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card border-success">
+            <div class="card-header bg-success text-white">
+                <h6 class="card-title mb-0">
+                    <i class="bi bi-lightbulb"></i> Consejos para Palabras Clave
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Mejores prácticas:</h6>
+                        <ul class="list-unstyled">
+                            <li><i class="bi bi-check text-success"></i> Usa nombres completos para mayor precisión</li>
+                            <li><i class="bi bi-check text-success"></i> Evita palabras muy comunes que generen ruido</li>
+                            <li><i class="bi bi-check text-success"></i> Considera variaciones de escritura (con/sin acentos)</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Ejemplos efectivos:</h6>
+                        <ul class="list-unstyled">
+                            <li><i class="bi bi-star text-warning"></i> "Javier Milei" (nombre completo)</li>
+                            <li><i class="bi bi-star text-warning"></i> "Oscar Liberman" (persona específica)</li>
+                            <li><i class="bi bi-star text-warning"></i> "Gustavo Coria" (nombre y apellido)</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Validación del formulario
+    const mainForm = document.querySelector('form');
+    if (mainForm) {
+        mainForm.addEventListener('submit', function(e) {
+        const keyword = document.getElementById('keyword').value.trim();
+        
+        if (!keyword) {
+            e.preventDefault();
+            alert('Por favor ingresa una palabra clave');
+            return false;
+        }
+        
+        if (keyword.length < 2) {
+            e.preventDefault();
+            alert('La palabra clave debe tener al menos 2 caracteres');
+            return false;
+        }
+        });
+    }
+    
+    // Confirmación para eliminar palabras clave
+    document.querySelectorAll('form[action*="remove_keyword"]').forEach(form => {
+        form.addEventListener('submit', function(e) {
+            const keyword = this.action.split('/').pop();
+            
+            if (!confirm(`¿Estás seguro de que quieres eliminar la palabra clave "${decodeURIComponent(keyword)}"?\n\nEsta acción no se puede deshacer.`)) {
+                e.preventDefault();
+            }
+        });
+    });
+    
+    // Tooltip para explicar los tipos de monitoreo
+    document.addEventListener('DOMContentLoaded', function() {
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    });
+</script>
+{% endblock %}

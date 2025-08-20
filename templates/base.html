@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}RSS Mentions Monitor{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .sidebar {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .sidebar .nav-link {
+            color: rgba(255, 255, 255, 0.8);
+            border-radius: 8px;
+            margin: 2px 0;
+            transition: all 0.3s ease;
+        }
+        .sidebar .nav-link:hover,
+        .sidebar .nav-link.active {
+            color: white;
+            background-color: rgba(255, 255, 255, 0.1);
+            transform: translateX(5px);
+        }
+        .main-content {
+            background-color: #f8f9fa;
+            min-height: 100vh;
+        }
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-2px);
+        }
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .stat-card .card-body {
+            padding: 1.5rem;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 8px;
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+        }
+        .alert {
+            border-radius: 10px;
+            border: none;
+        }
+        .table {
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .badge {
+            border-radius: 6px;
+        }
+        .navbar-brand {
+            font-weight: 600;
+            color: #667eea !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav class="col-md-3 col-lg-2 d-md-block sidebar collapse">
+                <div class="position-sticky pt-3">
+                    <div class="text-center mb-4">
+                        <h4 class="text-white"><i class="bi bi-rss"></i> RSS Monitor</h4>
+                    </div>
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}" href="{{ url_for('dashboard') }}">
+                                <i class="bi bi-speedometer2"></i> Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'feeds_management' %}active{% endif %}" href="{{ url_for('feeds_management') }}">
+                                <i class="bi bi-rss-fill"></i> Feeds RSS
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'keywords_management' %}active{% endif %}" href="{{ url_for('keywords_management') }}">
+                                <i class="bi bi-tags"></i> Palabras Clave
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'articles' %}active{% endif %}" href="{{ url_for('articles') }}">
+                                <i class="bi bi-newspaper"></i> Artículos
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'mentions' %}active{% endif %}" href="{{ url_for('mentions') }}">
+                                <i class="bi bi-chat-quote"></i> Menciones
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'test_page' %}active{% endif %}" href="{{ url_for('test_page') }}">
+                                <i class="bi bi-play-circle"></i> Testing
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'view_logs' %}active{% endif %}" href="{{ url_for('view_logs') }}">
+                                <i class="bi bi-file-text"></i> Logs
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+            <!-- Main content -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 main-content">
+                <div class="pt-3 pb-2 mb-3">
+                    <nav class="navbar navbar-expand-lg navbar-light bg-white rounded shadow-sm mb-4">
+                        <div class="container-fluid">
+                            <span class="navbar-brand mb-0 h1">{% block page_title %}RSS Mentions Monitor{% endblock %}</span>
+                            <div class="navbar-nav ms-auto">
+                                <span class="nav-link text-muted">
+                                    <i class="bi bi-clock"></i> {{ current_time.strftime('%d/%m/%Y %H:%M') }}
+                                </span>
+                            </div>
+                        </div>
+                    </nav>
+
+                    <!-- Flash messages -->
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                                    <i class="bi bi-{{ 'exclamation-triangle' if category == 'error' else 'check-circle' if category == 'success' else 'info-circle' }}"></i>
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+
+                    {% block content %}{% endblock %}
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/moment.min.js"></script>
+    <script>
+        // Auto-refresh stats every 30 seconds
+        function refreshStats() {
+            fetch('/api/stats')
+                .then(response => response.json())
+                .then(data => {
+                    // Update stats if elements exist
+                    const elements = {
+                        'total-articles': data.total_articles,
+                        'total-hits': data.total_hits,
+                        'success-rate': data.success_rate ? data.success_rate.toFixed(1) + '%' : 'N/A'
+                    };
+                    
+                    Object.entries(elements).forEach(([id, value]) => {
+                        const element = document.getElementById(id);
+                        if (element && value !== undefined) {
+                            element.textContent = value;
+                        }
+                    });
+                })
+                .catch(error => console.log('Error refreshing stats:', error));
+        }
+
+        // Refresh stats every 30 seconds
+        setInterval(refreshStats, 30000);
+
+        // Format timestamps
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.timestamp').forEach(function(element) {
+                const timestamp = element.textContent;
+                if (timestamp) {
+                    element.textContent = moment(timestamp).format('DD/MM/YYYY HH:mm');
+                }
+            });
+        });
+    </script>
+    
+    {% block scripts %}{% endblock %}
+</body>
+</html>

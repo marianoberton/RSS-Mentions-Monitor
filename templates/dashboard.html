@@ -1,0 +1,239 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - RSS Mentions Monitor{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <!-- Estadísticas principales -->
+    <div class="col-md-3 mb-3">
+        <div class="card stat-card">
+            <div class="card-body text-center">
+                <i class="bi bi-file-text fs-1 mb-2"></i>
+                <h3 class="card-title" id="total-articles">{{ stats.total_articles or 0 }}</h3>
+                <p class="card-text">Artículos Procesados</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card stat-card">
+            <div class="card-body text-center">
+                <i class="bi bi-bullseye fs-1 mb-2"></i>
+                <h3 class="card-title" id="total-hits">{{ stats.total_hits or 0 }}</h3>
+                <p class="card-text">Menciones Detectadas</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card stat-card">
+            <div class="card-body text-center">
+                <i class="bi bi-check-circle fs-1 mb-2"></i>
+                <h3 class="card-title" id="success-rate">{{ "%.1f%%"|format(stats.success_rate) if stats.success_rate else "N/A" }}</h3>
+                <p class="card-text">Tasa de Éxito</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card stat-card">
+            <div class="card-body text-center">
+                <i class="bi bi-rss-fill fs-1 mb-2"></i>
+                <h3 class="card-title">{{ enabled_feeds|length }}</h3>
+                <p class="card-text">Feeds Activos</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Palabras clave monitoreadas -->
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-tags"></i> Palabras Clave Monitoreadas
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if keywords %}
+                    {% for keyword in keywords %}
+                        <span class="badge bg-secondary me-2 mb-2">{{ keyword }}</span>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted">No hay palabras clave configuradas</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Feeds activos -->
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header bg-success text-white">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-rss-fill"></i> Feeds Activos
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if enabled_feeds %}
+                    <div class="list-group list-group-flush">
+                        {% for feed in enabled_feeds[:5] %}
+                            <div class="list-group-item border-0 px-0">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="fw-medium">{{ feed.name }}</span>
+                                    <span class="badge bg-success">Activo</span>
+                                </div>
+                            </div>
+                        {% endfor %}
+                        {% if enabled_feeds|length > 5 %}
+                            <div class="list-group-item border-0 px-0 text-center">
+                                <small class="text-muted">y {{ enabled_feeds|length - 5 }} más...</small>
+                            </div>
+                        {% endif %}
+                    </div>
+                {% else %}
+                    <p class="text-muted">No hay feeds activos</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Estado del sistema -->
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header bg-info text-white">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-gear"></i> Estado del Sistema
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span>Monitor RSS</span>
+                    <span class="badge bg-success">Activo</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span>Base de Datos</span>
+                    <span class="badge bg-success">Conectada</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span>Telegram Bot</span>
+                    <span class="badge bg-success">Configurado</span>
+                </div>
+                <div class="text-center mt-3">
+                    <a href="{{ url_for('test_page') }}" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-play-circle"></i> Ejecutar Test
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Menciones recientes -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-clock-history"></i> Menciones Recientes
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if recent_hits %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Palabra Clave</th>
+                                    <th>Artículo</th>
+                                    <th>Sitio</th>
+                                    <th>Ubicación</th>
+                                    <th>Fecha</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for hit in recent_hits %}
+                                    <tr>
+                                        <td>
+                                            <span class="badge bg-primary">{{ hit.keyword }}</span>
+                                        </td>
+                                        <td>
+                                            <div class="text-truncate" style="max-width: 300px;" title="{{ hit.title }}">
+                                                {{ hit.title }}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-secondary">{{ hit.site }}</span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-info">{{ hit.where_found }}</span>
+                                        </td>
+                                        <td>
+                                            <small class="text-muted timestamp">{{ hit.detected_utc }}</small>
+                                        </td>
+                                        <td>
+                                            <a href="{{ hit.link }}" target="_blank" class="btn btn-outline-primary btn-sm">
+                                                <i class="bi bi-box-arrow-up-right"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-search text-muted" style="font-size: 3rem;"></i>
+                        <p class="text-muted mt-3">No hay menciones recientes</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Estadísticas por palabra clave -->
+{% if stats.keyword_stats %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-dark text-white">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-bar-chart"></i> Estadísticas por Palabra Clave (Última Hora)
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for keyword, count in stats.keyword_stats.items() %}
+                        <div class="col-md-4 mb-3">
+                            <div class="card border-left-primary">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between">
+                                        <div>
+                                            <h6 class="text-primary">{{ keyword }}</h6>
+                                            <h4 class="mb-0">{{ count }}</h4>
+                                        </div>
+                                        <div class="align-self-center">
+                                            <i class="bi bi-bullseye text-primary" style="font-size: 2rem;"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Auto-refresh dashboard every 60 seconds
+    setInterval(function() {
+        location.reload();
+    }, 60000);
+</script>
+{% endblock %}

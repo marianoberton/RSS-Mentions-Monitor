@@ -1,0 +1,38 @@
+timezone: "America/Argentina/Buenos_Aires"
+interval_minutes: 10
+request_timeout_sec: 15
+feeds:
+  - {name: "infocielo", url: "https://www.infocielo.com/feed", enabled: true}
+  - {name: "labrujula24", url: "https://www.labrujula24.com/feed/", enabled: true}
+  - {name: "lanueva_general", url: "http://www.lanueva.com/news/rss/index", enabled: true}
+  - {name: "lanueva_ciudad", url: "http://www.lanueva.com/news/rss/category/1", enabled: true}
+  - {name: "lanueva_punta_alta", url: "http://www.lanueva.com/news/rss/category/2", enabled: true}
+  - {name: "lanueva_region", url: "http://www.lanueva.com/news/rss/category/3", enabled: true}
+  - {name: "lanueva_pais", url: "http://www.lanueva.com/news/rss/category/4", enabled: true}
+  - {name: "lanueva_mundo", url: "http://www.lanueva.com/news/rss/category/5", enabled: true}
+  - {name: "lanueva_seguridad", url: "http://www.lanueva.com/news/rss/category/6", enabled: true}
+  - {name: "lanueva_deportes", url: "http://www.lanueva.com/news/rss/category/7", enabled: true}
+  - {name: "lanueva_aplausos", url: "http://www.lanueva.com/news/rss/category/8", enabled: true}
+  - {name: "lanueva_opinion", url: "http://www.lanueva.com/news/rss/category/9", enabled: true}
+  - {name: "lanueva_sociedad", url: "http://www.lanueva.com/news/rss/category/10", enabled: true}
+  - {name: "lpo_ultimasnoticias", url: "http://www.lapoliticaonline.com.ar/files/rss/ultimasnoticias.xml", enabled: true}
+  - {name: "lpo_politica", url: "http://www.lapoliticaonline.com.ar/files/rss/politica.xml", enabled: true}
+  - {name: "lpo_economia", url: "http://www.lapoliticaonline.com.ar/files/rss/economia.xml", enabled: true}
+  - {name: "lpo_ciudad", url: "http://www.lapoliticaonline.com.ar/files/rss/ciudad.xml", enabled: true}
+  - {name: "lpo_provincia", url: "http://www.lapoliticaonline.com.ar/files/rss/provincia.xml", enabled: true}
+  - {name: "lpo_conurbano", url: "http://www.lapoliticaonline.com.ar/files/rss/conurbano.xml", enabled: true}
+  - {name: "lpo_campo", url: "http://www.lapoliticaonline.com.ar/files/rss/campo.xml", enabled: true}
+  - {name: "letra_p_judiciales", url: "https://www.letrap.com.ar/rss/pages/judiciales.xml", enabled: true}
+  - {name: "letra_p_ciudad", url: "https://www.letrap.com.ar/rss/pages/ciudad.xml", enabled: true}
+  - {name: "letra_p_politica", url: "https://www.letrap.com.ar/rss/pages/politica.xml", enabled: true}
+  - {name: "letra_p_conurbano", url: "https://www.letrap.com.ar/rss/pages/conurbano.xml", enabled: true}
+  - {name: "letra_p_municipios", url: "https://www.letrap.com.ar/rss/pages/municipios.xml", enabled: true}
+  - {name: "letra_p_sociedad", url: "https://www.letrap.com.ar/rss/pages/sociedad.xml", enabled: true}
+  - {name: "letra_p_economia", url: "https://www.letrap.com.ar/rss/pages/economia.xml", enabled: true}
+  - {name: "diario3", url: "https://www.diario3.com.ar/feed", enabled: true}
+ 
+keywords:
+  - "Oscar Liberman"
+  - "Gustavo Coria"
+  - "Andres de Leo"
+  - "Javier Milei"

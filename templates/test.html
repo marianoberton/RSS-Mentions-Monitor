@@ -1,0 +1,252 @@
+{% extends "base.html" %}
+
+{% block title %}Testing - RSS Mentions Monitor{% endblock %}
+{% block page_title %}Testing del Sistema{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="alert alert-info" role="alert">
+            <i class="bi bi-info-circle"></i>
+            <strong>Área de Testing:</strong> Aquí puedes ejecutar pruebas manuales del sistema para verificar su funcionamiento.
+            Los tests se ejecutan en segundo plano y puedes revisar los resultados en la sección de logs.
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Test de tarea principal -->
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-gear"></i> Test Completo del Sistema
+                </h5>
+            </div>
+            <div class="card-body">
+                <p class="card-text">
+                    Ejecuta la tarea principal completa que procesa todos los feeds habilitados, 
+                    busca menciones de palabras clave y genera estadísticas.
+                </p>
+                <ul class="list-unstyled mb-3">
+                    <li><i class="bi bi-check text-success"></i> Procesa todos los feeds RSS</li>
+                    <li><i class="bi bi-check text-success"></i> Busca todas las palabras clave</li>
+                    <li><i class="bi bi-check text-success"></i> Actualiza la base de datos</li>
+                    <li><i class="bi bi-check text-success"></i> Genera resumen horario</li>
+                </ul>
+                <form method="POST" action="{{ url_for('run_test') }}">
+                    <input type="hidden" name="test_type" value="main_task">
+                    <button type="submit" class="btn btn-primary" onclick="showTestRunning(this)">
+                        <i class="bi bi-play-circle"></i> Ejecutar Test Completo
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Test de feed individual -->
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header bg-success text-white">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-rss"></i> Test de Feed Individual
+                </h5>
+            </div>
+            <div class="card-body">
+                <p class="card-text">
+                    Prueba un feed RSS específico para verificar que se puede acceder 
+                    y procesar correctamente.
+                </p>
+                <form method="POST" action="{{ url_for('run_test') }}">
+                    <input type="hidden" name="test_type" value="single_feed">
+                    <div class="mb-3">
+                        <label for="feed_name" class="form-label">Seleccionar Feed:</label>
+                        <select class="form-select" id="feed_name" name="feed_name" required>
+                            <option value="">Selecciona un feed...</option>
+                            {% for feed in enabled_feeds %}
+                                <option value="{{ feed.name }}">{{ feed.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-success" onclick="showTestRunning(this)">
+                        <i class="bi bi-play-circle"></i> Probar Feed
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Estado de tests -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-clock-history"></i> Estado de Tests
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="test-status" class="text-center py-3">
+                    <i class="bi bi-hourglass text-muted" style="font-size: 2rem;"></i>
+                    <p class="text-muted mt-2">No hay tests ejecutándose actualmente</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Información sobre testing -->
+<div class="row">
+    <div class="col-md-6 mb-4">
+        <div class="card border-info">
+            <div class="card-header bg-info text-white">
+                <h6 class="card-title mb-0">
+                    <i class="bi bi-info-circle"></i> ¿Qué hace el Test Completo?
+                </h6>
+            </div>
+            <div class="card-body">
+                <ol class="mb-0">
+                    <li>Conecta a todos los feeds RSS habilitados</li>
+                    <li>Descarga y parsea los artículos más recientes</li>
+                    <li>Busca menciones de todas las palabras clave configuradas</li>
+                    <li>Guarda los resultados en la base de datos</li>
+                    <li>Genera estadísticas y resumen horario</li>
+                    <li>Envía notificaciones según la configuración</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6 mb-4">
+        <div class="card border-success">
+            <div class="card-header bg-success text-white">
+                <h6 class="card-title mb-0">
+                    <i class="bi bi-lightbulb"></i> Consejos para Testing
+                </h6>
+            </div>
+            <div class="card-body">
+                <ul class="mb-0">
+                    <li>Ejecuta tests durante horarios de baja actividad</li>
+                    <li>Revisa los logs después de cada test</li>
+                    <li>Prueba feeds individuales si hay problemas</li>
+                    <li>Verifica la conectividad antes de hacer tests</li>
+                    <li>Los tests pueden tardar varios minutos</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Estadísticas de testing -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-dark text-white">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-bar-chart"></i> Estadísticas de Configuración
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-3">
+                        <div class="border rounded p-3">
+                            <i class="bi bi-rss text-primary" style="font-size: 2rem;"></i>
+                            <h4 class="text-primary mt-2">{{ enabled_feeds|length }}</h4>
+                            <p class="text-muted mb-0">Feeds Activos</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="border rounded p-3">
+                            <i class="bi bi-tags text-success" style="font-size: 2rem;"></i>
+                            <h4 class="text-success mt-2">{{ keywords|length }}</h4>
+                            <p class="text-muted mb-0">Palabras Clave</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="border rounded p-3">
+                            <i class="bi bi-bell text-warning" style="font-size: 2rem;"></i>
+                            <h4 class="text-warning mt-2">{{ keywords|select('in', ['Oscar Liberman', 'Gustavo Coria'])|list|length }}</h4>
+                            <p class="text-muted mb-0">Notificaciones VIP</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="border rounded p-3">
+                            <i class="bi bi-graph-up text-info" style="font-size: 2rem;"></i>
+                            <h4 class="text-info mt-2">{{ keywords|select('equalto', 'Milei')|list|length }}</h4>
+                            <p class="text-muted mb-0">Solo Estadísticas</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function showTestRunning(button) {
+        // Cambiar el estado del botón
+        const originalText = button.innerHTML;
+        button.innerHTML = '<i class="bi bi-hourglass-split"></i> Ejecutando...';
+        button.disabled = true;
+        
+        // Mostrar estado en la sección de estado
+        const statusDiv = document.getElementById('test-status');
+        statusDiv.innerHTML = `
+            <div class="d-flex align-items-center justify-content-center">
+                <div class="spinner-border text-primary me-3" role="status">
+                    <span class="visually-hidden">Cargando...</span>
+                </div>
+                <div>
+                    <h6 class="mb-1">Test en ejecución...</h6>
+                    <p class="text-muted mb-0">Esto puede tardar varios minutos. Revisa los logs para ver el progreso.</p>
+                </div>
+            </div>
+        `;
+        
+        // Restaurar el botón después de 5 segundos
+        setTimeout(() => {
+            button.innerHTML = originalText;
+            button.disabled = false;
+            
+            statusDiv.innerHTML = `
+                <div class="alert alert-success" role="alert">
+                    <i class="bi bi-check-circle"></i>
+                    Test iniciado correctamente. Revisa la sección de logs para ver los resultados.
+                </div>
+            `;
+        }, 5000);
+    }
+    
+    // Validación del formulario de feed individual
+    document.querySelector('form[action*="run_test"] select').addEventListener('change', function() {
+        const submitButton = this.closest('form').querySelector('button[type="submit"]');
+        submitButton.disabled = !this.value;
+    });
+    
+    // Auto-refresh de la página cada 30 segundos si hay tests ejecutándose
+    let refreshInterval;
+    
+    function startAutoRefresh() {
+        refreshInterval = setInterval(() => {
+            // Solo refrescar si hay indicadores de que hay tests ejecutándose
+            const hasRunningTests = document.querySelector('.spinner-border');
+            if (hasRunningTests) {
+                location.reload();
+            } else {
+                clearInterval(refreshInterval);
+            }
+        }, 30000);
+    }
+    
+    // Iniciar auto-refresh si hay tests ejecutándose
+    document.addEventListener('DOMContentLoaded', function() {
+        const hasRunningTests = document.querySelector('.spinner-border');
+        if (hasRunningTests) {
+            startAutoRefresh();
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,227 @@
+{% extends "base.html" %}
+
+{% block title %}Gestión de Feeds - RSS Mentions Monitor{% endblock %}
+{% block page_title %}Gestión de Feeds RSS{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-plus-circle"></i> Agregar Nuevo Feed
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('add_feed') }}">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="name" class="form-label">Nombre del Feed</label>
+                                <input type="text" class="form-control" id="name" name="name" required 
+                                       placeholder="Ej: Infobae">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="url" class="form-label">URL del Feed RSS</label>
+                                <input type="url" class="form-control" id="url" name="url" required 
+                                       placeholder="https://ejemplo.com/rss">
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="mb-3">
+                                <label class="form-label">&nbsp;</label>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="enabled" name="enabled" checked>
+                                    <label class="form-check-label" for="enabled">
+                                        Habilitado
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-plus-lg"></i> Agregar Feed
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-list-ul"></i> Feeds Configurados
+                    <span class="badge bg-light text-dark ms-2">{{ feeds|length }} total</span>
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if feeds %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Estado</th>
+                                    <th>Nombre</th>
+                                    <th>URL</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for feed in feeds %}
+                                    <tr class="{% if not feed.get('enabled', True) %}table-secondary{% endif %}">
+                                        <td>
+                                            {% if feed.get('enabled', True) %}
+                                                <span class="badge bg-success">
+                                                    <i class="bi bi-check-circle"></i> Activo
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">
+                                                    <i class="bi bi-pause-circle"></i> Inactivo
+                                                </span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <strong>{{ feed.name }}</strong>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <code class="text-truncate me-2" style="max-width: 400px;">{{ feed.url }}</code>
+                                                <a href="{{ feed.url }}" target="_blank" class="btn btn-outline-secondary btn-sm">
+                                                    <i class="bi bi-box-arrow-up-right"></i>
+                                                </a>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="btn-group" role="group">
+                                                <form method="POST" action="{{ url_for('toggle_feed', feed_name=feed.name) }}" class="d-inline">
+                                                    {% if feed.get('enabled', True) %}
+                                                        <button type="submit" class="btn btn-outline-warning btn-sm" 
+                                                                onclick="return confirm('¿Desactivar este feed?')">
+                                                            <i class="bi bi-pause"></i> Desactivar
+                                                        </button>
+                                                    {% else %}
+                                                        <button type="submit" class="btn btn-outline-success btn-sm">
+                                                            <i class="bi bi-play"></i> Activar
+                                                        </button>
+                                                    {% endif %}
+                                                </form>
+                                                <a href="{{ url_for('test_page') }}?feed={{ feed.name }}" class="btn btn-outline-info btn-sm">
+                                                    <i class="bi bi-play-circle"></i> Test
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Estadísticas de feeds -->
+                    <div class="row mt-4">
+                        <div class="col-md-6">
+                            <div class="card border-success">
+                                <div class="card-body text-center">
+                                    <i class="bi bi-check-circle text-success" style="font-size: 2rem;"></i>
+                                    <h4 class="text-success mt-2">{{ feeds|selectattr('enabled')|list|length }}</h4>
+                                    <p class="text-muted mb-0">Feeds Activos</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card border-secondary">
+                                <div class="card-body text-center">
+                                    <i class="bi bi-pause-circle text-secondary" style="font-size: 2rem;"></i>
+                                    <h4 class="text-secondary mt-2">{{ feeds|rejectattr('enabled')|list|length }}</h4>
+                                    <p class="text-muted mb-0">Feeds Inactivos</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-rss text-muted" style="font-size: 4rem;"></i>
+                        <h4 class="text-muted mt-3">No hay feeds configurados</h4>
+                        <p class="text-muted">Agrega tu primer feed RSS usando el formulario de arriba</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Información adicional -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card border-info">
+            <div class="card-header bg-info text-white">
+                <h6 class="card-title mb-0">
+                    <i class="bi bi-info-circle"></i> Información sobre Feeds RSS
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Consejos para agregar feeds:</h6>
+                        <ul class="list-unstyled">
+                            <li><i class="bi bi-check text-success"></i> Verifica que la URL sea válida y accesible</li>
+                            <li><i class="bi bi-check text-success"></i> Usa nombres descriptivos para identificar fácilmente los feeds</li>
+                            <li><i class="bi bi-check text-success"></i> Puedes desactivar feeds temporalmente sin eliminarlos</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Formatos soportados:</h6>
+                        <ul class="list-unstyled">
+                            <li><i class="bi bi-rss text-warning"></i> RSS 2.0</li>
+                            <li><i class="bi bi-rss text-warning"></i> Atom 1.0</li>
+                            <li><i class="bi bi-rss text-warning"></i> RSS 1.0 (RDF)</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Validación del formulario
+    document.querySelector('form').addEventListener('submit', function(e) {
+        const name = document.getElementById('name').value.trim();
+        const url = document.getElementById('url').value.trim();
+        
+        if (!name || !url) {
+            e.preventDefault();
+            alert('Por favor completa todos los campos requeridos');
+            return false;
+        }
+        
+        // Validación básica de URL
+        try {
+            new URL(url);
+        } catch {
+            e.preventDefault();
+            alert('Por favor ingresa una URL válida');
+            return false;
+        }
+    });
+    
+    // Confirmación para cambios de estado
+    document.querySelectorAll('form[action*="toggle_feed"]').forEach(form => {
+        form.addEventListener('submit', function(e) {
+            const button = this.querySelector('button');
+            const action = button.textContent.includes('Desactivar') ? 'desactivar' : 'activar';
+            const feedName = this.action.split('/').pop();
+            
+            if (!confirm(`¿Estás seguro de que quieres ${action} el feed "${feedName}"?`)) {
+                e.preventDefault();
+            }
+        });
+    });
+</script>
+{% endblock %}
