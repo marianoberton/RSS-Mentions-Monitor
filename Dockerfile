@@ -1,12 +1,11 @@
-FROM python:3.11-slim
+# Imagen oficial Playwright con browsers + deps (estable)
+FROM mcr.microsoft.com/playwright/python:v1.54.0-jammy
 
 WORKDIR /app
 
-# Dependencias del sistema (agrego bash)
+# Utilidades que usabas
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc \
-    curl \
-    bash \
+    curl bash gcc \
   && rm -rf /var/lib/apt/lists/*
 
 # Dependencias Python
@@ -16,23 +15,22 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Código
 COPY . .
 
-# Copio start.sh a /start.sh, normalizo EOL y doy permisos
-COPY start.sh /start.sh
+# Normalizar EOL y permisos del start.sh en ambos paths
 RUN sed -i 's/\r$//' /start.sh && chmod +x /start.sh \
  && sed -i 's/\r$//' /app/start.sh && chmod +x /app/start.sh
 
-# (NECESARIO si tu monitor usa Playwright)
-RUN python -m pip install --no-cache-dir playwright && playwright install --with-deps
-# (opcional) si vas a usar Playwright:
-# RUN python -m pip install --no-cache-dir playwright && playwright install --with-deps
+# Crear carpetas persistentes (si no existen)
+RUN mkdir -p /app/data /app/logs
 
-# Vars
+# Variables de entorno
 ENV TZ=America/Argentina/Buenos_Aires \
     FLASK_APP=web_app.py \
     FLASK_ENV=production \
-    PYTHONPATH=/app
+    PYTHONPATH=/app \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
 
 EXPOSE 5000
 
-# Dejo un CMD por defecto (sirve para pruebas) 
+# Arranque por defecto (tu compose llama /start.sh web)
 CMD ["/start.sh"]
