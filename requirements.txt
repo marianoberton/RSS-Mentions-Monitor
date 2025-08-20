@@ -10,6 +10,10 @@ tenacity>=8.2
 python-dotenv>=1.0
 pytest>=8.0
 playwright>=1.40.0  # Para extracción de contenido avanzada con navegador
+beautifulsoup4>=4.12.3
+# opcional pero recomendado para mejor parser HTML:
+lxml>=5.2
+
 
 # Dependencias para la interfaz web
 Flask>=2.3.3
@@ -18,3 +22,4 @@ Jinja2>=3.1.2
 MarkupSafe>=2.1.3
 itsdangerous>=2.1.2
 blinker>=1.6.3
+
