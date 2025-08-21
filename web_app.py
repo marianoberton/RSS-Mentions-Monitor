@@ -2,7 +2,7 @@ from flask import Flask, render_template, request, jsonify, redirect, url_for, f
 import yaml
 import os
 from datetime import datetime, timedelta
-from app.storage import get_db_connection, get_hourly_stats, get_global_stats
+from app.storage import get_db_connection, get_hourly_stats, get_global_stats, remove_duplicate_hits, get_detailed_stats
 from app.tasks import main_task, process_feed
 from app.feeds import get_enabled_feeds
 from app.config import config
@@ -652,6 +652,29 @@ def favicon():
 def vite_client():
     """Manejar solicitudes de vite client para evitar 404s."""
     return '', 404
+
+@app.route('/api/remove-duplicates', methods=['POST'])
+def remove_duplicates():
+    """Elimina hits duplicados de la base de datos."""
+    try:
+        result = remove_duplicate_hits()
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Error al eliminar duplicados: {str(e)}'
+        }), 500
+
+@app.route('/api/detailed-stats')
+def detailed_stats():
+    """Obtiene estadísticas detalladas del sistema."""
+    try:
+        stats = get_detailed_stats()
+        return jsonify(stats)
+    except Exception as e:
+        return jsonify({
+            'error': f'Error al obtener estadísticas: {str(e)}'
+        }), 500
 
 if __name__ == '__main__':
     # Para desarrollo local

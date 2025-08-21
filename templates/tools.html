@@ -58,6 +58,53 @@
             </div>
         </div>
         {% endfor %}
+        
+        <!-- Herramientas adicionales -->
+        <div class="col-lg-4 col-md-6 mb-4 tool-card" data-category="diagnostico">
+            <div class="card shadow h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="icon-circle bg-info text-white me-3">
+                            📊
+                        </div>
+                        <div>
+                            <h5 class="card-title mb-0">Estadísticas Detalladas</h5>
+                            <small class="text-muted">detailed_stats</small>
+                        </div>
+                    </div>
+                    <p class="card-text">Muestra estadísticas detalladas del sistema y duplicados</p>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="badge bg-success">Diagnostico</span>
+                        <button class="btn btn-info btn-sm" onclick="showDetailedStats()">
+                            <i class="fas fa-chart-bar"></i> Ver Estadísticas
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4 col-md-6 mb-4 tool-card" data-category="procesamiento">
+            <div class="card shadow h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="icon-circle bg-warning text-white me-3">
+                            🗑️
+                        </div>
+                        <div>
+                            <h5 class="card-title mb-0">Eliminar Duplicados</h5>
+                            <small class="text-muted">remove_duplicates</small>
+                        </div>
+                    </div>
+                    <p class="card-text">Elimina hits duplicados del dashboard</p>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="badge bg-info">Procesamiento</span>
+                        <button class="btn btn-warning btn-sm" onclick="removeDuplicates()">
+                            <i class="fas fa-trash"></i> Eliminar Duplicados
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Modal para mostrar resultados -->
@@ -287,6 +334,181 @@ document.addEventListener('DOMContentLoaded', function() {
             }, 2000);
         }.bind(this));
     });
+    
+    // Función para mostrar estadísticas detalladas
+    window.showDetailedStats = function() {
+        const modal = document.getElementById('resultModal');
+        const modalTitle = document.getElementById('resultModalLabel');
+        const modalBody = document.getElementById('execution-output');
+        
+        modalTitle.textContent = '📊 Estadísticas Detalladas del Sistema';
+        modalBody.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Cargando...</span></div><p class="mt-2">Obteniendo estadísticas...</p></div>';
+        
+        const modalInstance = new bootstrap.Modal(modal);
+        modalInstance.show();
+        
+        fetch('/api/detailed-stats')
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    modalBody.innerHTML = `<div class="alert alert-danger">❌ Error: ${data.error}</div>`;
+                    return;
+                }
+                
+                let html = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5>📈 Estadísticas Generales</h5>
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item d-flex justify-content-between">
+                                    <span>Total de artículos:</span>
+                                    <strong>${data.total_articles}</strong>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between">
+                                    <span>Artículos procesados:</span>
+                                    <strong>${data.processed_articles}</strong>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between">
+                                    <span>Total de hits:</span>
+                                    <strong>${data.total_hits}</strong>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between">
+                                    <span>Artículos únicos con hits:</span>
+                                    <strong>${data.unique_articles_with_hits}</strong>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between">
+                                    <span>Promedio hits/artículo:</span>
+                                    <strong>${data.avg_hits_per_article.toFixed(2)}</strong>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between ${data.duplicate_groups > 0 ? 'list-group-item-warning' : 'list-group-item-success'}">
+                                    <span>Grupos duplicados:</span>
+                                    <strong>${data.duplicate_groups}</strong>
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h5>🔍 Menciones por Keyword</h5>
+                            <ul class="list-group list-group-flush">`;
+                
+                for (const [keyword, count] of Object.entries(data.keyword_breakdown)) {
+                    html += `
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>${keyword}:</span>
+                            <strong>${count}</strong>
+                        </li>`;
+                }
+                
+                html += `</ul></div></div>`;
+                
+                if (data.articles_with_many_hits.length > 0) {
+                    html += `
+                        <div class="mt-4">
+                            <h5>⚠️ Artículos con Muchos Hits (>3)</h5>
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Hits</th>
+                                            <th>Sitio</th>
+                                            <th>Título</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>`;
+                    
+                    data.articles_with_many_hits.forEach(article => {
+                        html += `
+                            <tr>
+                                <td><span class="badge bg-warning">${article.hit_count}</span></td>
+                                <td>${article.site}</td>
+                                <td>${article.title}</td>
+                            </tr>`;
+                    });
+                    
+                    html += `</tbody></table></div></div>`;
+                }
+                
+                if (data.duplicate_groups > 0) {
+                    html += `
+                        <div class="mt-4">
+                            <div class="alert alert-warning">
+                                <h6>⚠️ Se detectaron ${data.duplicate_groups} grupos de duplicados</h6>
+                                <p class="mb-2">Esto puede estar causando que el dashboard muestre números inflados.</p>
+                                <button class="btn btn-warning btn-sm" onclick="removeDuplicates()">🗑️ Eliminar Duplicados</button>
+                            </div>
+                        </div>`;
+                }
+                
+                modalBody.innerHTML = html;
+            })
+            .catch(error => {
+                modalBody.innerHTML = `<div class="alert alert-danger">❌ Error de conexión: ${error.message}</div>`;
+            });
+    };
+    
+    // Función para eliminar duplicados
+    window.removeDuplicates = function() {
+        if (!confirm('¿Estás seguro de que quieres eliminar los hits duplicados? Esta acción no se puede deshacer.')) {
+            return;
+        }
+        
+        const modal = document.getElementById('resultModal');
+        const modalTitle = document.getElementById('resultModalLabel');
+        const modalBody = document.getElementById('execution-output');
+        
+        modalTitle.textContent = '🗑️ Eliminando Duplicados';
+        modalBody.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Procesando...</span></div><p class="mt-2">Eliminando hits duplicados...</p></div>';
+        
+        const modalInstance = new bootstrap.Modal(modal);
+        modalInstance.show();
+        
+        fetch('/api/remove-duplicates', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+            .then(response => response.json())
+            .then(data => {
+                let html = '';
+                
+                if (data.success) {
+                    if (data.hits_removed > 0) {
+                        html = `
+                            <div class="alert alert-success">
+                                <h5>✅ Duplicados Eliminados Exitosamente</h5>
+                                <ul class="mb-0">
+                                    <li>Grupos de duplicados encontrados: <strong>${data.duplicates_found}</strong></li>
+                                    <li>Grupos procesados: <strong>${data.groups_processed}</strong></li>
+                                    <li>Hits duplicados eliminados: <strong>${data.hits_removed}</strong></li>
+                                </ul>
+                                <hr>
+                                <p class="mb-0">💡 <strong>Recomendación:</strong> Recarga la página del dashboard para ver las estadísticas actualizadas.</p>
+                            </div>
+                            <div class="text-center">
+                                <button class="btn btn-primary" onclick="window.location.reload()">🔄 Recargar Página</button>
+                                <button class="btn btn-info" onclick="showDetailedStats()">📊 Ver Estadísticas</button>
+                            </div>`;
+                    } else {
+                        html = `
+                            <div class="alert alert-info">
+                                <h5>ℹ️ No se Encontraron Duplicados</h5>
+                                <p class="mb-0">${data.message}</p>
+                            </div>`;
+                    }
+                } else {
+                    html = `
+                        <div class="alert alert-danger">
+                            <h5>❌ Error al Eliminar Duplicados</h5>
+                            <p class="mb-0">${data.message}</p>
+                        </div>`;
+                }
+                
+                modalBody.innerHTML = html;
+            })
+            .catch(error => {
+                modalBody.innerHTML = `<div class="alert alert-danger">❌ Error de conexión: ${error.message}</div>`;
+            });
+    };
 });
 </script>
 {% endblock %}

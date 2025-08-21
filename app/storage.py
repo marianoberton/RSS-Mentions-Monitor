@@ -294,3 +294,135 @@ def mark_notification_sent(hit_id: int):
             (hit_id,)
         )
     logger.debug(f"Notificación marcada como enviada para hit ID: {hit_id}")
+
+def remove_duplicate_hits() -> Dict[str, Any]:
+    """Elimina hits duplicados y retorna estadísticas de la operación."""
+    conn = get_db_connection()
+    result = {
+        "duplicates_found": 0,
+        "hits_removed": 0,
+        "groups_processed": 0,
+        "success": False,
+        "message": ""
+    }
+    
+    try:
+        with conn:
+            # Buscar duplicados
+            cursor = conn.execute("""
+                SELECT article_id, keyword, where_found, COUNT(*) as count, 
+                       GROUP_CONCAT(id ORDER BY detected_utc) as hit_ids
+                FROM hits 
+                GROUP BY article_id, keyword, where_found
+                HAVING COUNT(*) > 1
+                ORDER BY count DESC
+            """)
+            
+            duplicates = cursor.fetchall()
+            result["duplicates_found"] = len(duplicates)
+            
+            if duplicates:
+                # Eliminar duplicados manteniendo solo el más antiguo
+                for dup in duplicates:
+                    hit_ids = dup[4].split(',')
+                    if len(hit_ids) > 1:
+                        # Mantener el primer hit (más antiguo) y eliminar los demás
+                        hits_to_delete = hit_ids[1:]
+                        
+                        for hit_id in hits_to_delete:
+                            conn.execute("DELETE FROM hits WHERE id = ?", (int(hit_id),))
+                            result["hits_removed"] += 1
+                        
+                        result["groups_processed"] += 1
+                
+                result["success"] = True
+                result["message"] = f"Eliminados {result['hits_removed']} hits duplicados de {result['groups_processed']} grupos"
+                logger.info(f"Duplicados eliminados: {result['hits_removed']} hits de {result['groups_processed']} grupos")
+            else:
+                result["success"] = True
+                result["message"] = "No se encontraron duplicados para eliminar"
+                
+    except Exception as e:
+        result["success"] = False
+        result["message"] = f"Error al eliminar duplicados: {str(e)}"
+        logger.error(f"Error eliminando duplicados: {e}")
+    
+    return result
+
+def get_detailed_stats() -> Dict[str, Any]:
+    """Obtiene estadísticas detalladas para diagnóstico."""
+    conn = get_db_connection()
+    stats = {
+        "total_articles": 0,
+        "processed_articles": 0,
+        "total_hits": 0,
+        "unique_articles_with_hits": 0,
+        "avg_hits_per_article": 0,
+        "duplicate_groups": 0,
+        "keyword_breakdown": {},
+        "articles_with_many_hits": []
+    }
+    
+    try:
+        with conn:
+            # Estadísticas básicas
+            cursor = conn.execute("SELECT COUNT(*) FROM articles")
+            stats["total_articles"] = cursor.fetchone()[0]
+            
+            cursor = conn.execute("SELECT COUNT(*) FROM articles WHERE content_processed = 1")
+            stats["processed_articles"] = cursor.fetchone()[0]
+            
+            cursor = conn.execute("SELECT COUNT(*) FROM hits")
+            stats["total_hits"] = cursor.fetchone()[0]
+            
+            cursor = conn.execute("SELECT COUNT(DISTINCT article_id) FROM hits")
+            stats["unique_articles_with_hits"] = cursor.fetchone()[0]
+            
+            if stats["unique_articles_with_hits"] > 0:
+                stats["avg_hits_per_article"] = stats["total_hits"] / stats["unique_articles_with_hits"]
+            
+            # Buscar duplicados
+            cursor = conn.execute("""
+                SELECT COUNT(*) FROM (
+                    SELECT article_id, keyword, where_found
+                    FROM hits 
+                    GROUP BY article_id, keyword, where_found
+                    HAVING COUNT(*) > 1
+                )
+            """)
+            stats["duplicate_groups"] = cursor.fetchone()[0]
+            
+            # Breakdown por keyword
+            cursor = conn.execute("""
+                SELECT keyword, COUNT(*) as count
+                FROM hits
+                GROUP BY keyword
+                ORDER BY count DESC
+            """)
+            
+            for row in cursor:
+                stats["keyword_breakdown"][row[0]] = row[1]
+            
+            # Artículos con muchos hits
+            cursor = conn.execute("""
+                SELECT h.article_id, COUNT(*) as hit_count, a.title, a.site
+                FROM hits h
+                JOIN articles a ON h.article_id = a.id
+                GROUP BY h.article_id
+                HAVING COUNT(*) > 3
+                ORDER BY hit_count DESC
+                LIMIT 10
+            """)
+            
+            for row in cursor:
+                stats["articles_with_many_hits"].append({
+                    "article_id": row[0],
+                    "hit_count": row[1],
+                    "title": row[2][:80] + "..." if len(row[2]) > 80 else row[2],
+                    "site": row[3]
+                })
+                
+    except Exception as e:
+        logger.error(f"Error obteniendo estadísticas detalladas: {e}")
+    
+    return stats
