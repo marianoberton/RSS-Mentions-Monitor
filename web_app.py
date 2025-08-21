@@ -2,7 +2,7 @@ from flask import Flask, render_template, request, jsonify, redirect, url_for, f
 import yaml
 import os
 from datetime import datetime, timedelta
-from app.storage import get_db_connection, get_hourly_stats
+from app.storage import get_db_connection, get_hourly_stats, get_global_stats
 from app.tasks import main_task, process_feed
 from app.feeds import get_enabled_feeds
 from app.config import config
@@ -20,8 +20,13 @@ logger = logging.getLogger(__name__)
 def dashboard():
     """Dashboard principal con estadísticas."""
     try:
-        # Obtener estadísticas recientes
-        stats = get_hourly_stats()
+        # Obtener estadísticas globales y de la última hora
+        stats = get_global_stats()
+        hourly_stats = get_hourly_stats()
+        
+        # Combinar estadísticas para el dashboard
+        stats['hourly_hits'] = hourly_stats['total_hits']
+        stats['hourly_articles'] = hourly_stats['total_articles']
         
         # Obtener feeds habilitados
         enabled_feeds = get_enabled_feeds()
@@ -497,6 +502,145 @@ def health_check():
             'status': 'unhealthy',
             'error': str(e),
             'timestamp': datetime.now().isoformat()
+        }), 500
+
+@app.route('/tools')
+def tools_dashboard():
+    """Dashboard de herramientas y diagnósticos."""
+    try:
+        # Definir las herramientas disponibles
+        tools = [
+            {
+                'name': 'Verificar Efectividad',
+                'description': 'Analiza la efectividad del sistema de detección de menciones',
+                'script': 'verificar_efectividad.py',
+                'category': 'diagnostico',
+                'icon': '📊'
+            },
+            {
+                'name': 'Verificar Estado',
+                'description': 'Revisa el estado general del sistema y base de datos',
+                'script': 'verificar_estado.py',
+                'category': 'diagnostico',
+                'icon': '🔍'
+            },
+            {
+                'name': 'Generar Reporte de Rendimiento',
+                'description': 'Crea un reporte detallado del rendimiento del sistema',
+                'script': 'generate_performance_report.py',
+                'category': 'reporte',
+                'icon': '📈'
+            },
+            {
+                'name': 'Verificar Solución',
+                'description': 'Ejecuta verificaciones post-despliegue',
+                'script': 'verificar_solucion.py',
+                'category': 'diagnostico',
+                'icon': '✅'
+            },
+            {
+                'name': 'Procesar Artículos Pendientes',
+                'description': 'Procesa todos los artículos pendientes en la cola',
+                'script': 'process_pending_articles.py',
+                'category': 'procesamiento',
+                'icon': '⚙️'
+            },
+            {
+                'name': 'Procesar Todos los Feeds',
+                'description': 'Ejecuta procesamiento inmediato de todos los feeds',
+                'script': 'process_all_feeds_now.py',
+                'category': 'procesamiento',
+                'icon': '🔄'
+            },
+            {
+                'name': 'Verificar Andres de Leo',
+                'description': 'Analiza específicamente las menciones de Andres de Leo',
+                'script': 'verificar_andres_de_leo.py',
+                'category': 'diagnostico',
+                'icon': '👤'
+            },
+            {
+                'name': 'Verificar Optimización',
+                'description': 'Revisa el estado de las optimizaciones implementadas',
+                'script': 'verificar_optimizacion.py',
+                'category': 'diagnostico',
+                'icon': '🚀'
+            },
+            {
+                'name': 'Analizar Efectividad',
+                'description': 'Análisis profundo de la efectividad del sistema',
+                'script': 'analizar_efectividad.py',
+                'category': 'analisis',
+                'icon': '🔬'
+            },
+            {
+                'name': 'Verificar Estado de Contenido',
+                'description': 'Revisa el estado del procesamiento de contenido',
+                'script': 'check_content_status.py',
+                'category': 'diagnostico',
+                'icon': '📄'
+            }
+        ]
+        
+        return render_template('tools.html', tools=tools, current_time=datetime.now())
+    except Exception as e:
+        logger.error(f"Error en tools dashboard: {e}")
+        flash(f"Error al cargar herramientas: {e}", 'error')
+        return render_template('tools.html', tools=[], current_time=datetime.now())
+
+@app.route('/tools/run/<script_name>', methods=['POST'])
+def run_tool(script_name):
+    """Ejecutar una herramienta específica."""
+    import subprocess
+    import sys
+    
+    try:
+        # Lista de scripts permitidos por seguridad
+        allowed_scripts = [
+            'verificar_efectividad.py',
+            'verificar_estado.py', 
+            'generate_performance_report.py',
+            'verificar_solucion.py',
+            'process_pending_articles.py',
+            'process_all_feeds_now.py',
+            'verificar_andres_de_leo.py',
+            'verificar_optimizacion.py',
+            'analizar_efectividad.py',
+            'check_content_status.py'
+        ]
+        
+        if script_name not in allowed_scripts:
+            return jsonify({
+                'success': False,
+                'error': f'Script {script_name} no está permitido'
+            }), 400
+        
+        # Ejecutar el script
+        result = subprocess.run(
+            [sys.executable, script_name],
+            capture_output=True,
+            text=True,
+            timeout=300,  # 5 minutos máximo
+            cwd=os.path.dirname(os.path.abspath(__file__))
+        )
+        
+        return jsonify({
+            'success': result.returncode == 0,
+            'output': result.stdout,
+            'error': result.stderr,
+            'return_code': result.returncode
+        })
+        
+    except subprocess.TimeoutExpired:
+        return jsonify({
+            'success': False,
+            'error': 'El script excedió el tiempo límite de 5 minutos'
+        }), 408
+    except Exception as e:
+        logger.error(f"Error ejecutando {script_name}: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
         }), 500
 
 @app.route('/favicon.ico')

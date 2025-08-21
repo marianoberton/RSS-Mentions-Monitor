@@ -104,9 +104,11 @@ def get_hourly_stats() -> Dict[str, Any]:
     stats = {
         "total_articles": 0,
         "processed_articles": 0,
+        "total_hits": 0,
         "milei_mentions": 0,
         "liberman_mentions": 0,
         "coria_mentions": 0,
+        "andres_de_leo_mentions": 0,
         "success_rate": 0
     }
     
@@ -120,6 +122,10 @@ def get_hourly_stats() -> Dict[str, Any]:
         # Artículos procesados exitosamente
         cursor = conn.execute(f"SELECT COUNT(*) FROM articles WHERE inserted_utc >= {one_hour_ago} AND content_processed = 1")
         stats["processed_articles"] = cursor.fetchone()[0]
+        
+        # Total de menciones detectadas en la última hora
+        cursor = conn.execute(f"SELECT COUNT(*) FROM hits WHERE detected_utc >= {one_hour_ago}")
+        stats["total_hits"] = cursor.fetchone()[0]
         
         # Calcular tasa de éxito
         if stats["total_articles"] > 0:
@@ -136,6 +142,59 @@ def get_hourly_stats() -> Dict[str, Any]:
         # Menciones a Gustavo Coria
         cursor = conn.execute(f"SELECT COUNT(*) FROM hits WHERE detected_utc >= {one_hour_ago} AND keyword LIKE '%Coria%'")
         stats["coria_mentions"] = cursor.fetchone()[0]
+        
+        # Menciones a Andres de Leo
+        cursor = conn.execute(f"SELECT COUNT(*) FROM hits WHERE detected_utc >= {one_hour_ago} AND (keyword LIKE '%Andres de Leo%' OR keyword LIKE '%Andrés de Leo%')")
+        stats["andres_de_leo_mentions"] = cursor.fetchone()[0]
+    
+    return stats
+
+def get_global_stats() -> Dict[str, Any]:
+    """Obtiene estadísticas globales de todo el sistema."""
+    conn = get_db_connection()
+    stats = {
+        "total_articles": 0,
+        "processed_articles": 0,
+        "total_hits": 0,
+        "milei_mentions": 0,
+        "liberman_mentions": 0,
+        "coria_mentions": 0,
+        "andres_de_leo_mentions": 0,
+        "success_rate": 0
+    }
+    
+    with conn:
+        # Total de artículos procesados
+        cursor = conn.execute("SELECT COUNT(*) FROM articles")
+        stats["total_articles"] = cursor.fetchone()[0]
+        
+        # Artículos procesados exitosamente
+        cursor = conn.execute("SELECT COUNT(*) FROM articles WHERE content_processed = 1")
+        stats["processed_articles"] = cursor.fetchone()[0]
+        
+        # Total de menciones detectadas
+        cursor = conn.execute("SELECT COUNT(*) FROM hits")
+        stats["total_hits"] = cursor.fetchone()[0]
+        
+        # Calcular tasa de éxito
+        if stats["total_articles"] > 0:
+            stats["success_rate"] = (stats["processed_articles"] / stats["total_articles"]) * 100
+        
+        # Menciones a Javier Milei
+        cursor = conn.execute("SELECT COUNT(*) FROM hits WHERE keyword LIKE '%Milei%'")
+        stats["milei_mentions"] = cursor.fetchone()[0]
+        
+        # Menciones a Oscar Liberman
+        cursor = conn.execute("SELECT COUNT(*) FROM hits WHERE keyword LIKE '%Liberman%'")
+        stats["liberman_mentions"] = cursor.fetchone()[0]
+        
+        # Menciones a Gustavo Coria
+        cursor = conn.execute("SELECT COUNT(*) FROM hits WHERE keyword LIKE '%Coria%'")
+        stats["coria_mentions"] = cursor.fetchone()[0]
+        
+        # Menciones a Andres de Leo
+        cursor = conn.execute("SELECT COUNT(*) FROM hits WHERE (keyword LIKE '%Andres de Leo%' OR keyword LIKE '%Andrés de Leo%')")
+        stats["andres_de_leo_mentions"] = cursor.fetchone()[0]
     
     return stats
 

@@ -18,6 +18,33 @@ TZ=America/Argentina/Buenos_Aires
 - ✅ **Javier Milei**: Monitoreo estándar activo
 - ✅ **Efectividad**: 82% (EXCELENTE)
 - ✅ **Timezone**: Argentina/Buenos_Aires
+- ✅ **Interfaz Web**: Herramientas de diagnóstico disponibles
+
+### 🛠️ Nueva Interfaz Web de Herramientas
+
+**¡IMPORTANTE!** Ahora puedes ejecutar todas las herramientas de diagnóstico desde la interfaz web, sin necesidad de usar la consola.
+
+**Acceso:** `http://tu-dominio.com/tools`
+
+**Herramientas Disponibles:**
+- 📊 Verificar Efectividad
+- 🔍 Verificar Estado  
+- ✅ Verificar Solución
+- 👤 Verificar Andres de Leo
+- 🚀 Verificar Optimización
+- ⚙️ Procesar Artículos Pendientes
+- 🔄 Procesar Todos los Feeds
+- 📈 Generar Reporte de Rendimiento
+- 🔬 Analizar Efectividad
+- 📄 Verificar Estado de Contenido
+
+**Ventajas:**
+- ✅ Sin comandos de consola
+- ✅ Interfaz gráfica intuitiva
+- ✅ Resultados formateados
+- ✅ Ejecución segura con timeouts
+- ✅ Filtros por categoría
+- ✅ Copiar resultados al portapapeles
 
 ## Pasos para Verificación en EasyPanel
 

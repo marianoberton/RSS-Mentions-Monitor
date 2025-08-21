@@ -1,0 +1,292 @@
+{% extends "base.html" %}
+
+{% block title %}Herramientas y Diagnósticos{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0 text-gray-800">🛠️ Herramientas y Diagnósticos</h1>
+                <div class="text-muted">
+                    <i class="fas fa-clock"></i> {{ current_time.strftime('%Y-%m-%d %H:%M:%S') }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros por categoría -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-body">
+                    <div class="btn-group" role="group" aria-label="Filtros de categoría">
+                        <button type="button" class="btn btn-outline-primary active" data-filter="all">Todas</button>
+                        <button type="button" class="btn btn-outline-primary" data-filter="diagnostico">🔍 Diagnóstico</button>
+                        <button type="button" class="btn btn-outline-primary" data-filter="procesamiento">⚙️ Procesamiento</button>
+                        <button type="button" class="btn btn-outline-primary" data-filter="reporte">📈 Reportes</button>
+                        <button type="button" class="btn btn-outline-primary" data-filter="analisis">🔬 Análisis</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Grid de herramientas -->
+    <div class="row" id="tools-grid">
+        {% for tool in tools %}
+        <div class="col-lg-4 col-md-6 mb-4 tool-card" data-category="{{ tool.category }}">
+            <div class="card shadow h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="icon-circle bg-primary text-white me-3">
+                            {{ tool.icon }}
+                        </div>
+                        <div>
+                            <h5 class="card-title mb-0">{{ tool.name }}</h5>
+                            <small class="text-muted">{{ tool.script }}</small>
+                        </div>
+                    </div>
+                    <p class="card-text">{{ tool.description }}</p>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="badge bg-{{ 'success' if tool.category == 'diagnostico' else 'info' if tool.category == 'procesamiento' else 'warning' if tool.category == 'reporte' else 'secondary' }}">{{ tool.category.title() }}</span>
+                        <button class="btn btn-primary btn-sm run-tool" data-script="{{ tool.script }}" data-name="{{ tool.name }}">
+                            <i class="fas fa-play"></i> Ejecutar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Modal para mostrar resultados -->
+    <div class="modal fade" id="resultModal" tabindex="-1" aria-labelledby="resultModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="resultModalLabel">Resultado de Ejecución</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="execution-status" class="mb-3"></div>
+                    <div id="execution-output"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="button" class="btn btn-primary" id="copy-output">Copiar Resultado</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de confirmación -->
+    <div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="confirmModalLabel">Confirmar Ejecución</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>¿Estás seguro de que quieres ejecutar <strong id="tool-name-confirm"></strong>?</p>
+                    <p class="text-muted">Esta operación puede tomar varios minutos en completarse.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="confirm-execute">Ejecutar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.icon-circle {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+}
+
+.tool-card {
+    transition: transform 0.2s;
+}
+
+.tool-card:hover {
+    transform: translateY(-2px);
+}
+
+.btn-group .btn {
+    border-radius: 0;
+}
+
+.btn-group .btn:first-child {
+    border-top-left-radius: 0.375rem;
+    border-bottom-left-radius: 0.375rem;
+}
+
+.btn-group .btn:last-child {
+    border-top-right-radius: 0.375rem;
+    border-bottom-right-radius: 0.375rem;
+}
+
+#execution-output {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    padding: 1rem;
+    max-height: 400px;
+    overflow-y: auto;
+    font-family: 'Courier New', monospace;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.loading-spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #3498db;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Filtros de categoría
+    const filterButtons = document.querySelectorAll('[data-filter]');
+    const toolCards = document.querySelectorAll('.tool-card');
+    
+    filterButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const filter = this.getAttribute('data-filter');
+            
+            // Actualizar botones activos
+            filterButtons.forEach(btn => btn.classList.remove('active'));
+            this.classList.add('active');
+            
+            // Filtrar tarjetas
+            toolCards.forEach(card => {
+                if (filter === 'all' || card.getAttribute('data-category') === filter) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        });
+    });
+    
+    // Ejecutar herramientas
+    const runButtons = document.querySelectorAll('.run-tool');
+    const confirmModal = new bootstrap.Modal(document.getElementById('confirmModal'));
+    const resultModal = new bootstrap.Modal(document.getElementById('resultModal'));
+    let currentScript = '';
+    let currentToolName = '';
+    
+    runButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            currentScript = this.getAttribute('data-script');
+            currentToolName = this.getAttribute('data-name');
+            
+            document.getElementById('tool-name-confirm').textContent = currentToolName;
+            confirmModal.show();
+        });
+    });
+    
+    // Confirmar ejecución
+    document.getElementById('confirm-execute').addEventListener('click', function() {
+        confirmModal.hide();
+        executeScript(currentScript, currentToolName);
+    });
+    
+    // Función para ejecutar script
+    function executeScript(script, toolName) {
+        // Mostrar modal de resultado con loading
+        document.getElementById('resultModalLabel').textContent = `Ejecutando: ${toolName}`;
+        document.getElementById('execution-status').innerHTML = `
+            <div class="alert alert-info">
+                <div class="loading-spinner"></div>
+                Ejecutando ${toolName}... Por favor espera.
+            </div>
+        `;
+        document.getElementById('execution-output').textContent = '';
+        resultModal.show();
+        
+        // Realizar petición AJAX
+        fetch(`/tools/run/${script}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('resultModalLabel').textContent = `Resultado: ${toolName}`;
+            
+            if (data.success) {
+                document.getElementById('execution-status').innerHTML = `
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle"></i> Ejecución completada exitosamente
+                    </div>
+                `;
+            } else {
+                document.getElementById('execution-status').innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-circle"></i> Error en la ejecución (Código: ${data.return_code || 'N/A'})
+                    </div>
+                `;
+            }
+            
+            // Mostrar output
+            let output = '';
+            if (data.output) {
+                output += data.output;
+            }
+            if (data.error) {
+                output += '\n\n=== ERRORES ===\n' + data.error;
+            }
+            
+            document.getElementById('execution-output').textContent = output || 'Sin salida';
+        })
+        .catch(error => {
+            document.getElementById('resultModalLabel').textContent = `Error: ${toolName}`;
+            document.getElementById('execution-status').innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle"></i> Error de conexión
+                </div>
+            `;
+            document.getElementById('execution-output').textContent = `Error: ${error.message}`;
+        });
+    }
+    
+    // Copiar resultado
+    document.getElementById('copy-output').addEventListener('click', function() {
+        const output = document.getElementById('execution-output').textContent;
+        navigator.clipboard.writeText(output).then(function() {
+            // Mostrar feedback temporal
+            const originalText = this.textContent;
+            this.textContent = 'Copiado!';
+            this.classList.add('btn-success');
+            this.classList.remove('btn-primary');
+            
+            setTimeout(() => {
+                this.textContent = originalText;
+                this.classList.add('btn-primary');
+                this.classList.remove('btn-success');
+            }, 2000);
+        }.bind(this));
+    });
+});
+</script>
+{% endblock %}
