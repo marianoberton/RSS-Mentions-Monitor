@@ -310,8 +310,7 @@ def remove_duplicate_hits() -> Dict[str, Any]:
         with conn:
             # Buscar duplicados
             cursor = conn.execute("""
-                SELECT article_id, keyword, where_found, COUNT(*) as count, 
-                       GROUP_CONCAT(id ORDER BY detected_utc) as hit_ids
+                SELECT article_id, keyword, where_found, COUNT(*) as count
                 FROM hits 
                 GROUP BY article_id, keyword, where_found
                 HAVING COUNT(*) > 1
@@ -324,13 +323,23 @@ def remove_duplicate_hits() -> Dict[str, Any]:
             if duplicates:
                 # Eliminar duplicados manteniendo solo el más antiguo
                 for dup in duplicates:
-                    hit_ids = dup[4].split(',')
+                    article_id, keyword, where_found, count = dup
+                    
+                    # Obtener todos los IDs de este grupo duplicado, ordenados por fecha
+                    hit_cursor = conn.execute("""
+                        SELECT id FROM hits 
+                        WHERE article_id = ? AND keyword = ? AND where_found = ?
+                        ORDER BY detected_utc ASC
+                    """, (article_id, keyword, where_found))
+                    
+                    hit_ids = [row[0] for row in hit_cursor.fetchall()]
+                    
                     if len(hit_ids) > 1:
                         # Mantener el primer hit (más antiguo) y eliminar los demás
                         hits_to_delete = hit_ids[1:]
                         
                         for hit_id in hits_to_delete:
-                            conn.execute("DELETE FROM hits WHERE id = ?", (int(hit_id),))
+                            conn.execute("DELETE FROM hits WHERE id = ?", (hit_id,))
                             result["hits_removed"] += 1
                         
                         result["groups_processed"] += 1
