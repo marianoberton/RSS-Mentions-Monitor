@@ -106,7 +106,7 @@ def save_hit_safe(hit):
         try:
             conn = get_db_connection()
             conn.execute(
-                "INSERT INTO hits (article_id, keyword, where_found, detected_utc) VALUES (?, ?, ?, ?)",
+                "INSERT OR IGNORE INTO hits (article_id, keyword, where_found, detected_utc) VALUES (?, ?, ?, ?)",
                 (hit["article_id"], hit["keyword"], hit["where_found"], hit["detected_utc"]),
             )
             conn.commit()

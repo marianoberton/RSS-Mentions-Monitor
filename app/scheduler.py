@@ -3,7 +3,7 @@ from apscheduler.triggers.cron import CronTrigger
 import logging
 
 from app.config import config
-from app.tasks import main_task, daily_summary
+from app.tasks import main_task, daily_summary, six_hourly_summary
 
 logger = logging.getLogger(__name__)
 
@@ -16,6 +16,14 @@ def run_scheduler():
         "interval",
         minutes=config["interval_minutes"],
         id="main_task",
+        replace_existing=True,
+    )
+
+    scheduler.add_job(
+        six_hourly_summary,
+        "interval",
+        hours=6,
+        id="six_hourly_summary",
         replace_existing=True,
     )
 

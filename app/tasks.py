@@ -8,7 +8,7 @@ from app.feeds import get_enabled_feeds
 from app.fetch import fetch_feed
 from app.matcher import find_keyword
 from app.storage import save_article_and_hit, get_db_connection, get_unprocessed_articles, update_article_content, get_hourly_stats, get_important_hits
-from app.notifier import send_telegram_notification, send_hourly_summary, send_important_hits_notifications
+from app.notifier import send_telegram_notification, send_hourly_summary, send_important_hits_notifications, send_immediate_important_notification
 from app.utils import get_utc_now, format_date, generate_article_id
 from app.feed_extractor import extraer_contenido_feed, tiene_contenido_completo
 
@@ -61,10 +61,10 @@ def process_feed(feed: Dict[str, Any], keywords: List[str]):
             }
             save_article_and_hit(article, hit)
             
-            # No enviar notificaciones individuales para ninguna palabra clave
-            # Las notificaciones de Liberman y Coria se envían en el resumen horario
-            # Las de Milei solo aparecen en estadísticas del resumen horario
-            pass
+            # Enviar notificación inmediata para menciones importantes
+            if any(name in keyword.lower() for name in ['liberman', 'coria', 'andres de leo']):
+                send_immediate_important_notification(article, hit)
+            
             continue
 
         # Verificar palabras clave en el resumen
@@ -79,10 +79,10 @@ def process_feed(feed: Dict[str, Any], keywords: List[str]):
                 }
                 save_article_and_hit(article, hit)
                 
-                # No enviar notificaciones individuales para ninguna palabra clave
-                # Las notificaciones de Liberman y Coria se envían en el resumen horario
-                # Las de Milei solo aparecen en estadísticas del resumen horario
-                pass
+                # Enviar notificación inmediata para menciones importantes
+                if any(name in keyword.lower() for name in ['liberman', 'coria', 'andres de leo']):
+                    send_immediate_important_notification(article, hit)
+                
                 continue
             
         # Si no se encontraron palabras clave, guardar solo el artículo
@@ -179,13 +179,8 @@ def process_article_content():
                         )
                         article_details = dict(cursor.fetchone())
                         
-                    # Guardar el hit en la base de datos
-                    conn = get_db_connection()
-                    with conn:
-                        conn.execute(
-                            "INSERT INTO hits (article_id, keyword, where_found, detected_utc) VALUES (?, ?, ?, ?)",
-                            (hit["article_id"], hit["keyword"], hit["where_found"], hit["detected_utc"]),
-                        )
+                    # Guardar el hit usando la función segura que previene duplicados
+                    save_article_and_hit(article_details, hit)
                     
                     # No enviar notificaciones individuales para ninguna palabra clave
                     # Las notificaciones de Liberman y Coria se envían en el resumen horario
@@ -230,31 +225,20 @@ def main_task():
     # sean procesados para la búsqueda de palabras clave
     process_article_content()
     
-    # Enviar resumen horario
-    try:
-        hourly_summary()
-    except Exception as e:
-        logger.error(f"Error al generar resumen horario: {e}")
+    # Las notificaciones inmediatas ya se envían en process_feed
+    # El resumen se envía cada 6 horas por el scheduler
 
     logger.info("RSS mention monitoring task finished.")
 
-def hourly_summary():
-    """Genera y envía un resumen horario de las menciones encontradas."""
-    logger.info("Generando resumen horario")
+def six_hourly_summary():
+    """Obtiene estadísticas de las últimas 6 horas y envía un resumen por Telegram."""
+    from app.storage import get_stats_for_hours
     
-    # Obtener estadísticas de la última hora
-    stats = get_hourly_stats()
+    # Obtener estadísticas de las últimas 6 horas
+    stats = get_stats_for_hours(6)
+    send_hourly_summary(stats)  # Reutilizamos la función existente
     
-    # Enviar resumen general por Telegram (solo estadísticas de Milei)
-    send_hourly_summary(stats)
-    
-    # Obtener y enviar notificaciones específicas para menciones importantes (Liberman, Coria y Andres de Leo)
-    important_hits = get_important_hits(hours=1)
-    if important_hits["liberman"] or important_hits["coria"] or important_hits["andres_de_leo"]:
-        send_important_hits_notifications(important_hits)
-        logger.info(f"Notificaciones importantes enviadas. Liberman: {len(important_hits['liberman'])}, Coria: {len(important_hits['coria'])}, Andres de Leo: {len(important_hits['andres_de_leo'])}")
-    
-    logger.info(f"Resumen horario enviado. Artículos: {stats['total_articles']}, Menciones a Milei: {stats['milei_mentions']}")
+    logger.info(f"Resumen de 6 horas enviado. Artículos: {stats['total_articles']}, Menciones a Milei: {stats['milei_mentions']}")
 
 
 def daily_summary():

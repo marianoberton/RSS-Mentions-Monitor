@@ -44,7 +44,7 @@ def send_hourly_summary(stats: Dict[str, Any]):
     local_time = format_date(now_utc, config["TZ"])
     
     message = (
-        f"⏰ <b>RESUMEN HORARIO - {local_time}</b>\n\n"
+        f"⏰ <b>RESUMEN CADA 6 HORAS - {local_time}</b>\n\n"
         f"📊 <b>Estadísticas:</b>\n"
         f"• Artículos procesados: {stats['total_articles']}\n"
         f"• Tasa de éxito: {stats['success_rate']:.1f}%\n\n"
@@ -219,3 +219,68 @@ def send_important_hits_notifications(important_hits: Dict[str, List[Dict[str, A
             mark_notification_sent(hit['id'])
         except requests.exceptions.RequestException as e:
             logger.error(f"Error al enviar notificación importante de Andres de Leo: {e}")
+
+def send_immediate_important_notification(article: Dict[str, Any], hit: Dict[str, Any]):
+    """Envía una notificación inmediata para menciones importantes."""
+    from app.utils import format_date
+    from app.storage import mark_notification_sent
+    from datetime import datetime
+    
+    token = config["TELEGRAM_BOT_TOKEN"]
+    chat_id = config["TELEGRAM_CHAT_ID"]
+    
+    # Determinar el nombre de la persona mencionada
+    keyword_lower = hit['keyword'].lower()
+    if 'liberman' in keyword_lower:
+        person_name = "OSCAR LIBERMAN"
+        emoji = "👤"
+    elif 'coria' in keyword_lower:
+        person_name = "GUSTAVO CORIA"
+        emoji = "👨‍💼"
+    elif 'andres de leo' in keyword_lower:
+        person_name = "ANDRES DE LEO"
+        emoji = "👨‍💻"
+    else:
+        person_name = hit['keyword'].upper()
+        emoji = "👤"
+    
+    # Formatear fecha de publicación
+    try:
+        if article.get('published_utc'):
+            pub_str = article['published_utc']
+            if 'GMT' in pub_str:
+                from email.utils import parsedate_to_datetime
+                pub_date = parsedate_to_datetime(pub_str)
+            else:
+                pub_date = datetime.fromisoformat(pub_str.replace('Z', '+00:00'))
+            formatted_date = pub_date.strftime('%d/%m/%Y %H:%M')
+        else:
+            formatted_date = "Fecha no disponible"
+    except Exception as e:
+        formatted_date = str(article.get('published_utc', 'Fecha no disponible'))
+    
+    message = (
+        f"🚨 <b>NOTIFICACIÓN INMEDIATA</b>\n\n"
+        f"{emoji} <b>{person_name}</b>\n\n"
+        f"📰 <b>{escape_html(article['site'].upper())}</b>\n"
+        f"📄 <b>{escape_html(article['title'])}</b>\n\n"
+        f"🔗 <a href=\"{article['link']}\">Leer artículo completo</a>\n\n"
+        f"📅 {formatted_date} UTC\n"
+        f"🔍 Detectado en: {hit['where_found']}"
+    )
+    
+    url = f"https://api.telegram.org/bot{token}/sendMessage"
+    payload = {
+        "chat_id": chat_id,
+        "text": message,
+        "parse_mode": "HTML",
+        "disable_web_page_preview": False,
+        "disable_notification": False
+    }
+    
+    try:
+        response = requests.post(url, json=payload)
+        response.raise_for_status()
+        logger.info(f"Notificación inmediata enviada para {person_name}: {article['title']}")
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Error al enviar notificación inmediata para {person_name}: {e}")
