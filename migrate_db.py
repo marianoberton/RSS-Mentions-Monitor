@@ -377,6 +377,94 @@ class DatabaseMigrator:
             logger.error(f"Error en migración 005: {e}")
             raise
     
+    def migration_006_create_candidates_system(self):
+        """Migración 006: Crear sistema de candidatos"""
+        migration_name = "006_create_candidates_system"
+        
+        if migration_name in self.migrations_applied:
+            return
+            
+        logger.info("Aplicando migración 006: Sistema de candidatos")
+        
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            
+            # Tabla candidates
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS candidates (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL,
+                    full_name TEXT,
+                    description TEXT,
+                    political_party TEXT NOT NULL,
+                    electoral_section INTEGER NOT NULL CHECK (electoral_section BETWEEN 1 AND 8),
+                    legislative_position TEXT NOT NULL,
+                    district TEXT,
+                    list_number INTEGER,
+                    list_position INTEGER,
+                    importance_level INTEGER DEFAULT 1,
+                    alliance_id INTEGER,
+                    created_utc TEXT NOT NULL,
+                    updated_utc TEXT NOT NULL,
+                    is_active INTEGER DEFAULT 1,
+                    UNIQUE(name, political_party, electoral_section)
+                )
+            """)
+            
+            # Tabla candidate_keywords
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS candidate_keywords (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    candidate_id INTEGER NOT NULL,
+                    keyword TEXT NOT NULL,
+                    is_primary INTEGER DEFAULT 0,
+                    created_utc TEXT NOT NULL,
+                    is_active INTEGER DEFAULT 1,
+                    FOREIGN KEY(candidate_id) REFERENCES candidates(id) ON DELETE CASCADE,
+                    UNIQUE(candidate_id, keyword)
+                )
+            """)
+            
+            # Tabla electoral_alliances
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS electoral_alliances (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    display_name TEXT NOT NULL UNIQUE,
+                    description TEXT,
+                    primary_color TEXT DEFAULT '#007bff',
+                    secondary_color TEXT DEFAULT '#6c757d',
+                    created_utc TEXT NOT NULL,
+                    updated_utc TEXT NOT NULL,
+                    is_active INTEGER DEFAULT 1
+                )
+            """)
+            
+            # Tabla notifications
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS notifications (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    article_id TEXT NOT NULL,
+                    sent_at TEXT NOT NULL,
+                    FOREIGN KEY(article_id) REFERENCES articles(id)
+                )
+            """)
+            
+            # Índices para mejorar rendimiento
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_candidate_keywords_candidate_id ON candidate_keywords(candidate_id)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_candidate_keywords_keyword ON candidate_keywords(keyword)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_candidates_electoral_section ON candidates(electoral_section)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_notifications_article_id ON notifications(article_id)")
+            
+            conn.commit()
+            conn.close()
+            
+            self.mark_migration_applied(migration_name)
+            
+        except Exception as e:
+            logger.error(f"Error en migración 006: {e}")
+            raise
+    
     def run_all_migrations(self):
         """Ejecuta todas las migraciones necesarias"""
         logger.info("Iniciando proceso de migración de base de datos")
@@ -391,7 +479,8 @@ class DatabaseMigrator:
             self.migration_002_add_persons_system,
             self.migration_003_add_missing_columns,
             self.migration_004_create_indexes,
-            self.migration_005_create_fts_tables
+            self.migration_005_create_fts_tables,
+            self.migration_006_create_candidates_system
         ]
         
         for migration in migrations:
@@ -412,7 +501,7 @@ class DatabaseMigrator:
             cursor = conn.cursor()
             
             # Verificar que las tablas principales existen
-            required_tables = ['articles', 'hits', 'feed_state', 'persons', 'person_keywords', 'articles_fts']
+            required_tables = ['articles', 'hits', 'feed_state', 'persons', 'person_keywords', 'articles_fts', 'candidates', 'candidate_keywords', 'electoral_alliances', 'notifications']
             
             for table in required_tables:
                 if self.check_table_exists(table):

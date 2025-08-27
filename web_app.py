@@ -1333,6 +1333,13 @@ def tools_dashboard():
                 'script': 'check_content_status.py',
                 'category': 'diagnostico',
                 'icon': '📄'
+            },
+            {
+                'name': 'Migrar Base de Datos',
+                'description': 'Actualiza la estructura de la base de datos con las últimas migraciones',
+                'script': 'migrate_db.py',
+                'category': 'mantenimiento',
+                'icon': '🗄️'
             }
         ]
         
@@ -1360,7 +1367,8 @@ def run_tool(script_name):
             'verificar_andres_de_leo.py',
             'verificar_optimizacion.py',
             'analizar_efectividad.py',
-            'check_content_status.py'
+            'check_content_status.py',
+            'migrate_db.py'
         ]
         
         if script_name not in allowed_scripts:
