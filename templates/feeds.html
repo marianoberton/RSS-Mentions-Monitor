@@ -25,8 +25,14 @@
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="url" class="form-label">URL del Feed RSS</label>
-                                <input type="url" class="form-control" id="url" name="url" required 
-                                       placeholder="https://ejemplo.com/rss">
+                                <div class="input-group">
+                                    <input type="url" class="form-control" id="url" name="url" required 
+                                           placeholder="https://ejemplo.com/rss">
+                                    <button type="button" class="btn btn-outline-secondary" id="validate-btn">
+                                        <i class="bi bi-check-circle"></i> Validar
+                                    </button>
+                                </div>
+                                <div id="validation-result" class="mt-2"></div>
                             </div>
                         </div>
                         <div class="col-md-2">
@@ -41,9 +47,14 @@
                             </div>
                         </div>
                     </div>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-plus-lg"></i> Agregar Feed
-                    </button>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-plus-lg"></i> Agregar Feed
+                        </button>
+                        <button type="button" class="btn btn-outline-info" data-bs-toggle="modal" data-bs-target="#autodiscoverModal">
+                            <i class="bi bi-search"></i> Autodescubrir Feeds
+                        </button>
+                    </div>
                 </form>
             </div>
         </div>
@@ -113,6 +124,12 @@
                                                 <a href="{{ url_for('test_page') }}?feed={{ feed.name }}" class="btn btn-outline-info btn-sm">
                                                     <i class="bi bi-play-circle"></i> Test
                                                 </a>
+                                                <form method="POST" action="{{ url_for('remove_feed', feed_name=feed.name) }}" class="d-inline">
+                                                    <button type="submit" class="btn btn-outline-danger btn-sm" 
+                                                            onclick="return confirm('¿Estás seguro de que quieres eliminar este feed?')">
+                                                        <i class="bi bi-trash"></i> Eliminar
+                                                    </button>
+                                                </form>
                                             </div>
                                         </td>
                                     </tr>
@@ -186,6 +203,33 @@
         </div>
     </div>
 </div>
+
+<!-- Modal de Autodiscovery -->
+<div class="modal fade" id="autodiscoverModal" tabindex="-1" aria-labelledby="autodiscoverModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="autodiscoverModalLabel">Autodescubrir Feeds RSS</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="website-url" class="form-label">URL del Sitio Web</label>
+                    <input type="url" class="form-control" id="website-url" 
+                           placeholder="https://ejemplo.com">
+                </div>
+                <div id="autodiscover-results"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn btn-primary" id="autodiscover-btn">
+                    <i class="bi bi-search"></i> Buscar Feeds
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block scripts %}
@@ -223,5 +267,104 @@
             }
         });
     });
+    
+    // Validación de feeds
+    document.getElementById('validate-btn').addEventListener('click', function() {
+        const url = document.getElementById('url').value.trim();
+        const resultDiv = document.getElementById('validation-result');
+        
+        if (!url) {
+            resultDiv.innerHTML = '<div class="alert alert-warning">Por favor ingresa una URL</div>';
+            return;
+        }
+        
+        resultDiv.innerHTML = '<div class="text-info"><i class="bi bi-hourglass-split"></i> Validando...</div>';
+        
+        fetch('/feeds/validate', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({url: url})
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.valid) {
+                resultDiv.innerHTML = `<div class="alert alert-success">
+                    <i class="bi bi-check-circle"></i> Feed válido: ${data.title || 'Sin título'}
+                    <br><small>Artículos encontrados: ${data.entries || 0}</small>
+                </div>`;
+            } else {
+                resultDiv.innerHTML = `<div class="alert alert-danger">
+                    <i class="bi bi-x-circle"></i> Error: ${data.error}
+                </div>`;
+            }
+        })
+        .catch(error => {
+            resultDiv.innerHTML = '<div class="alert alert-danger">Error de conexión</div>';
+        });
+    });
+    
+    // Autodiscovery de feeds
+    document.getElementById('autodiscover-btn').addEventListener('click', function() {
+        const url = document.getElementById('website-url').value.trim();
+        const resultDiv = document.getElementById('autodiscover-results');
+        
+        if (!url) {
+            resultDiv.innerHTML = '<div class="alert alert-warning">Por favor ingresa una URL</div>';
+            return;
+        }
+        
+        resultDiv.innerHTML = '<div class="text-info"><i class="bi bi-hourglass-split"></i> Buscando feeds...</div>';
+        
+        fetch('/feeds/autodiscover', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({url: url})
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.feeds && data.feeds.length > 0) {
+                 let html = '<div class="alert alert-success">Feeds encontrados:</div>';
+                 data.feeds.forEach((feed, index) => {
+                     html += `<div class="card mb-2">
+                         <div class="card-body">
+                             <h6 class="card-title">${feed.title || 'Sin título'}</h6>
+                             <p class="card-text"><small class="text-muted">${feed.url}</small></p>
+                             <button class="btn btn-sm btn-primary add-feed-btn" data-url="${feed.url}" data-title="${feed.title || ''}">
+                                 <i class="bi bi-plus"></i> Agregar
+                             </button>
+                         </div>
+                     </div>`;
+                 });
+                 resultDiv.innerHTML = html;
+                 
+                 // Agregar event listeners a los botones
+                 document.querySelectorAll('.add-feed-btn').forEach(btn => {
+                     btn.addEventListener('click', function() {
+                         const url = this.getAttribute('data-url');
+                         const title = this.getAttribute('data-title');
+                         addDiscoveredFeed(url, title);
+                     });
+                 });
+            } else {
+                resultDiv.innerHTML = '<div class="alert alert-warning">No se encontraron feeds RSS</div>';
+            }
+        })
+        .catch(error => {
+            resultDiv.innerHTML = '<div class="alert alert-danger">Error de conexión</div>';
+        });
+    });
+    
+    // Función para agregar feed descubierto
+    function addDiscoveredFeed(url, title) {
+        document.getElementById('url').value = url;
+        if (title && !document.getElementById('name').value) {
+            document.getElementById('name').value = title;
+        }
+        bootstrap.Modal.getInstance(document.getElementById('autodiscoverModal')).hide();
+    }
 </script>
 {% endblock %}

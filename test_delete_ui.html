@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prueba de Eliminación de Candidatos</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; }
+        .button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+        .delete-btn { background-color: #dc3545; color: white; border: none; }
+        .test-btn { background-color: #007bff; color: white; border: none; }
+        .log { background-color: #f8f9fa; padding: 10px; margin: 10px 0; border-left: 3px solid #007bff; }
+        .error { border-left-color: #dc3545; }
+        .success { border-left-color: #28a745; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Prueba de Eliminación de Candidatos</h1>
+    
+    <div class="test-section">
+        <h2>📋 Candidatos de Prueba</h2>
+        <div id="candidates-list">
+            <div style="margin: 10px 0;">
+                <strong>Oscar Liberman (ID: 2)</strong>
+                <button class="button delete-btn" onclick="confirmDelete(2, 'Oscar Liberman')">🗑️ Eliminar Original</button>
+                <button class="button test-btn" onclick="directDelete(2, 'Oscar Liberman')">🔧 Eliminar Directo</button>
+                <button class="button test-btn" onclick="debugDelete(2, 'Oscar Liberman')">🐛 Debug Delete</button>
+            </div>
+            <div style="margin: 10px 0;">
+                <strong>Andres de Leo (ID: 3)</strong>
+                <button class="button delete-btn" onclick="confirmDelete(3, 'Andres de Leo')">🗑️ Eliminar Original</button>
+                <button class="button test-btn" onclick="directDelete(3, 'Andres de Leo')">🔧 Eliminar Directo</button>
+                <button class="button test-btn" onclick="debugDelete(3, 'Andres de Leo')">🐛 Debug Delete</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2>📊 Log de Actividad</h2>
+        <div id="log-container"></div>
+        <button class="button test-btn" onclick="clearLog()">🧹 Limpiar Log</button>
+    </div>
+
+    <script>
+        // Función para logging
+        function log(message, type = 'info') {
+            const logContainer = document.getElementById('log-container');
+            const logEntry = document.createElement('div');
+            logEntry.className = `log ${type}`;
+            logEntry.innerHTML = `<strong>[${new Date().toLocaleTimeString()}]</strong> ${message}`;
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+        
+        function clearLog() {
+            document.getElementById('log-container').innerHTML = '';
+        }
+        
+        // Función original del manage_candidates.html
+        function confirmDelete(candidateId, candidateName) {
+            log(`🎯 Iniciando confirmDelete para: ${candidateName} (ID: ${candidateId})`);
+            
+            try {
+                if (confirm(`¿Estás seguro de que quieres eliminar al candidato "${candidateName}"?`)) {
+                    log(`✅ Usuario confirmó eliminación de ${candidateName}`);
+                    
+                    // Crear formulario dinámicamente
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = `/candidates/${candidateId}/delete`;
+                    
+                    log(`📝 Formulario creado con action: ${form.action}`);
+                    
+                    // Agregar al DOM y enviar
+                    document.body.appendChild(form);
+                    log(`📤 Enviando formulario...`);
+                    
+                    form.submit();
+                    log(`✅ Formulario enviado`);
+                } else {
+                    log(`❌ Usuario canceló eliminación de ${candidateName}`);
+                }
+            } catch (error) {
+                log(`❌ Error en confirmDelete: ${error.message}`, 'error');
+                console.error('Error completo:', error);
+            }
+        }
+        
+        // Función de eliminación directa sin confirmación
+        function directDelete(candidateId, candidateName) {
+            log(`🚀 Iniciando directDelete para: ${candidateName} (ID: ${candidateId})`);
+            
+            try {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = `/candidates/${candidateId}/delete`;
+                
+                log(`📝 Formulario directo creado con action: ${form.action}`);
+                
+                document.body.appendChild(form);
+                log(`📤 Enviando formulario directo...`);
+                
+                form.submit();
+                log(`✅ Formulario directo enviado`);
+            } catch (error) {
+                log(`❌ Error en directDelete: ${error.message}`, 'error');
+                console.error('Error completo:', error);
+            }
+        }
+        
+        // Función de debug con fetch
+        function debugDelete(candidateId, candidateName) {
+            log(`🐛 Iniciando debugDelete para: ${candidateName} (ID: ${candidateId})`);
+            
+            const url = `/candidates/${candidateId}/delete`;
+            log(`🌐 URL de eliminación: ${url}`);
+            
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                }
+            })
+            .then(response => {
+                log(`📡 Respuesta recibida - Status: ${response.status}`, response.ok ? 'success' : 'error');
+                log(`📍 URL de respuesta: ${response.url}`);
+                
+                if (response.redirected) {
+                    log(`🔄 Redirección detectada a: ${response.url}`, 'success');
+                    window.location.href = response.url;
+                } else if (response.ok) {
+                    log(`✅ Eliminación exitosa`, 'success');
+                    window.location.reload();
+                } else {
+                    log(`❌ Error en eliminación - Status: ${response.status}`, 'error');
+                }
+                
+                return response.text();
+            })
+            .then(text => {
+                log(`📄 Contenido de respuesta (primeros 200 chars): ${text.substring(0, 200)}`);
+            })
+            .catch(error => {
+                log(`❌ Error en fetch: ${error.message}`, 'error');
+                console.error('Error completo:', error);
+            });
+        }
+        
+        // Log inicial
+        log('🚀 Página de prueba cargada correctamente', 'success');
+        log('💡 Usa los botones para probar diferentes métodos de eliminación');
+        log('🔍 Revisa la consola del navegador para más detalles');
+    </script>
+</body>
+</html>

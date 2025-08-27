@@ -1,0 +1,372 @@
+{% extends "base.html" %}
+
+{% block title %}{{ candidate.basic_info.full_name or candidate.basic_info.name }} - Perfil Detallado{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header con información básica -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-auto">
+                            <div class="icon-circle bg-primary" style="height: 4rem; width: 4rem;">
+                                <i class="fas fa-user fa-2x text-white"></i>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <h1 class="h3 mb-1">{{ candidate.basic_info.full_name or candidate.basic_info.name }}</h1>
+                            {% if candidate.basic_info.legislative_position %}
+                                <p class="text-muted mb-1">{{ candidate.basic_info.legislative_position }}</p>
+                            {% endif %}
+                            {% if candidate.basic_info.electoral_section %}
+                                <span class="badge badge-secondary">Sección Electoral {{ candidate.basic_info.electoral_section }}</span>
+                            {% endif %}
+                            {% if candidate.basic_info.district %}
+                                <span class="badge badge-info ml-1">{{ candidate.basic_info.district }}</span>
+                            {% endif %}
+                            {% if candidate.basic_info.political_party %}
+                                <span class="badge badge-warning ml-1">{{ candidate.basic_info.political_party }}</span>
+                            {% endif %}
+                            {% if candidate.basic_info.is_active %}
+                                <span class="badge badge-success ml-2">Activo</span>
+                            {% else %}
+                                <span class="badge badge-secondary ml-2">Inactivo</span>
+                            {% endif %}
+                        </div>
+                        <div class="col-auto">
+                            <a href="{{ url_for('candidate_mentions', candidate_id=candidate.basic_info.id) }}" class="btn btn-outline-primary me-2">
+                                <i class="fas fa-list"></i> Ver Todas las Menciones
+                            </a>
+                            <a href="{{ url_for('candidates_dashboard') }}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Volver
+                            </a>
+                        </div>
+                    </div>
+                    {% if candidate.basic_info.description %}
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <p class="text-muted mb-0">{{ candidate.basic_info.description }}</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Información adicional del candidato -->
+                    {% if candidate.basic_info.list_number or candidate.basic_info.list_position %}
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <div class="d-flex">
+                                {% if candidate.basic_info.list_number %}
+                                <span class="badge badge-outline-primary mr-2">Lista {{ candidate.basic_info.list_number }}</span>
+                                {% endif %}
+                                {% if candidate.basic_info.list_position %}
+                                <span class="badge badge-outline-secondary">Posición {{ candidate.basic_info.list_position }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Estadísticas principales -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Total Menciones
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ candidate.stats.total_hits }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-comments fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Artículos Únicos
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ candidate.stats.unique_articles }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-newspaper fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Promedio por Artículo
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ "%.1f"|format(candidate.stats.avg_hits_per_article) }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-chart-line fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Menciones Recientes
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ candidate.stats.recent_hits }}</div>
+                            <div class="text-xs text-muted">(últimos 7 días)</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-clock fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Keywords y Tendencias -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Keywords Monitoreadas</h6>
+                </div>
+                <div class="card-body">
+                    {% if candidate.keywords %}
+                    <div class="row">
+                        {% for keyword in candidate.keywords %}
+                        <div class="col-md-6 mb-2">
+                            <span class="badge badge-primary">{{ keyword.keyword }}</span>
+                            <small class="text-muted ml-1">({{ keyword.hits_count }} menciones)</small>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted">No hay keywords configuradas</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Top Sources -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Principales Fuentes</h6>
+                </div>
+                <div class="card-body">
+                    {% if candidate.top_sources %}
+                    {% for source in candidate.top_sources %}
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div>
+                            <strong>{{ source.site }}</strong>
+                        </div>
+                        <div>
+                            <span class="badge badge-info">{{ source.hits_count }} menciones</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <p class="text-muted">No hay fuentes disponibles</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tendencias y Actividad -->
+    <div class="row">
+        <div class="col-lg-8 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Tendencias de Menciones</h6>
+                </div>
+                <div class="card-body">
+                    {% if candidate.trends %}
+                    <canvas id="trendsChart" width="400" height="200"></canvas>
+                    {% else %}
+                    <p class="text-muted">No hay datos de tendencias disponibles</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Actividad Semanal</h6>
+                </div>
+                <div class="card-body">
+                    {% if candidate.weekly_activity %}
+                    {% for day in candidate.weekly_activity %}
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div>{{ day.day_name }}</div>
+                        <div>
+                            <div class="progress" style="width: 100px; height: 10px;">
+                                <div class="progress-bar" role="progressbar" 
+                                     style="width: {{ (day.hits_count / candidate.weekly_activity|map(attribute='hits_count')|max * 100)|round }}%"
+                                     aria-valuenow="{{ day.hits_count }}" aria-valuemin="0" aria-valuemax="{{ candidate.weekly_activity|map(attribute='hits_count')|max }}">
+                                </div>
+                            </div>
+                            <small class="text-muted ml-2">{{ day.hits_count }}</small>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <p class="text-muted">No hay datos de actividad semanal</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Artículos Recientes -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Artículos Recientes</h6>
+                </div>
+                <div class="card-body">
+                    {% if candidate.recent_articles %}
+                    <div class="table-responsive">
+                        <table class="table table-bordered" width="100%" cellspacing="0">
+                            <thead>
+                                <tr>
+                                    <th>Título</th>
+                                    <th>Fuente</th>
+                                    <th>Fecha</th>
+                                    <th>Menciones</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for article in candidate.recent_articles %}
+                                <tr>
+                                    <td>
+                                        <div class="font-weight-bold">{{ article.title[:80] }}{% if article.title|length > 80 %}...{% endif %}</div>
+                                    </td>
+                                    <td>{{ article.site }}</td>
+                                    <td>
+                                        <small class="text-muted">{{ article.published_utc[:16] }}</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-primary">{{ article.hits_count }}</span>
+                                    </td>
+                                    <td>
+                                        <a href="{{ article.link }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-external-link-alt"></i> Ver
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted">No hay artículos recientes disponibles</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reporte Detallado -->
+    {% if report %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Reporte Detallado</h6>
+                </div>
+                <div class="card-body">
+                    <pre class="bg-light p-3" style="white-space: pre-wrap; font-size: 0.9em;">{{ report }}</pre>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.icon-circle {
+    border-radius: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.progress {
+    background-color: #e9ecef;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+.badge-outline-primary {
+    color: #007bff;
+    border: 1px solid #007bff;
+    background-color: transparent;
+}
+
+.badge-outline-secondary {
+    color: #6c757d;
+    border: 1px solid #6c757d;
+    background-color: transparent;
+}
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+{% if candidate.trends %}
+// Gráfico de tendencias
+const ctx = document.getElementById('trendsChart').getContext('2d');
+const trendsChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: [{% for trend in candidate.trends %}'{{ trend.date }}'{% if not loop.last %},{% endif %}{% endfor %}],
+        datasets: [{
+            label: 'Menciones por día',
+            data: [{% for trend in candidate.trends %}{{ trend.hits_count }}{% if not loop.last %},{% endif %}{% endfor %}],
+            borderColor: 'rgb(75, 192, 192)',
+            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+            tension: 0.1
+        }]
+    },
+    options: {
+        responsive: true,
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
+    }
+});
+{% endif %}
+</script>
+{% endblock %}

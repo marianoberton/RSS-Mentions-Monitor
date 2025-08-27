@@ -1,173 +1,179 @@
 {% extends "base.html" %}
 
-{% block title %}Gestión de Palabras Clave - RSS Mentions Monitor{% endblock %}
-{% block page_title %}Gestión de Palabras Clave{% endblock %}
+{% block title %}Palabras Clave de Candidatos - RSS Mentions Monitor{% endblock %}
+{% block page_title %}Palabras Clave de Candidatos{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Estilos actualizados para coincidir con la sidebar */
+.btn-primary {
+    background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+    border: none;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #1e40af 0%, #2563eb 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(30, 58, 138, 0.3);
+}
+
+.btn-outline-primary {
+    border: 2px solid #1e3a8a;
+    color: #1e3a8a;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.btn-outline-primary:hover {
+    background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+    border-color: #1e3a8a;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(30, 58, 138, 0.3);
+}
+
+.card {
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 15px rgba(30, 58, 138, 0.2);
+}
+
+.card-header {
+    background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+    color: white;
+    border-radius: 15px 15px 0 0 !important;
+    border: none;
+}
+
+.border-left-primary {
+    border-left: 4px solid #1e3a8a !important;
+}
+
+.border-left-success {
+    border-left: 4px solid #059669 !important;
+}
+
+.border-left-warning {
+    border-left: 4px solid #d97706 !important;
+}
+
+.border-left-info {
+    border-left: 4px solid #0284c7 !important;
+}
+
+.text-primary {
+    color: #1e3a8a !important;
+}
+
+.alert {
+    border-radius: 10px;
+    border: none;
+}
+
+.table {
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.badge {
+    border-radius: 6px;
+    font-weight: 500;
+}
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="row mb-4">
     <div class="col-12">
-        <div class="card">
-            <div class="card-header bg-primary text-white">
-                <h5 class="card-title mb-0">
-                    <i class="bi bi-plus-circle"></i> Agregar Nueva Palabra Clave
-                </h5>
-            </div>
-            <div class="card-body">
-                <form method="POST" action="{{ url_for('add_keyword') }}">
-                    <div class="row">
-                        <div class="col-md-8">
-                            <div class="mb-3">
-                                <label for="keyword" class="form-label">Palabra Clave</label>
-                                <input type="text" class="form-control" id="keyword" name="keyword" required 
-                                       placeholder="Ej: Oscar Liberman">
-                                <div class="form-text">La búsqueda no distingue entre mayúsculas y minúsculas</div>
-                            </div>
-                        </div>
-                        <div class="col-md-4 d-flex align-items-end">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="bi bi-plus-lg"></i> Agregar Palabra Clave
-                            </button>
-                        </div>
-                    </div>
-                </form>
-            </div>
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i>
+            <strong>Información:</strong> Esta página muestra todas las palabras clave asociadas a los candidatos registrados en el sistema.
+            Las palabras clave se generan automáticamente al agregar candidatos y también pueden agregarse manualmente.
         </div>
     </div>
 </div>
 
-<div class="row">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header bg-success text-white">
-                <h5 class="card-title mb-0">
-                    <i class="bi bi-tags"></i> Palabras Clave Configuradas
-                    <span class="badge bg-light text-dark ms-2">{{ keywords|length }} total</span>
-                </h5>
-            </div>
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card border-left-primary">
             <div class="card-body">
-                {% if keywords %}
-                    <div class="row">
-                        {% for keyword in keywords %}
-                            <div class="col-md-6 col-lg-4 mb-3">
-                                <div class="card border-left-primary h-100">
-                                    <div class="card-body">
-                                        <div class="d-flex justify-content-between align-items-start">
-                                            <div class="flex-grow-1">
-                                                <h6 class="card-title text-primary mb-2">
-                                                    <i class="bi bi-tag"></i> {{ keyword }}
-                                                </h6>
-                                                <div class="mb-2">
-                                                    {% if keyword == "Milei" %}
-                                                        <span class="badge bg-info">Solo resúmenes</span>
-                                                    {% elif keyword in ["Oscar Liberman", "Gustavo Coria", "Andres de Leo", "Andrés de Leo"] %}
-                                                        <span class="badge bg-warning">Notificaciones importantes</span>
-                                                    {% else %}
-                                                        <span class="badge bg-secondary">Monitoreo estándar</span>
-                                                    {% endif %}
-                                                </div>
-                                            </div>
-                                            <div class="dropdown">
-                                                <button class="btn btn-outline-secondary btn-sm dropdown-toggle" 
-                                                        type="button" data-bs-toggle="dropdown">
-                                                    <i class="bi bi-three-dots-vertical"></i>
-                                                </button>
-                                                <ul class="dropdown-menu">
-                                                    <li>
-                                                        <form method="POST" action="{{ url_for('remove_keyword', keyword=keyword) }}" class="d-inline">
-                                                            <button type="submit" class="dropdown-item text-danger" 
-                                                                    onclick="return confirm('¿Eliminar la palabra clave &quot;{{ keyword }}&quot;?')">
-                                                                <i class="bi bi-trash"></i> Eliminar
-                                                            </button>
-                                                        </form>
-                                                    </li>
-                                                </ul>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        {% endfor %}
-                    </div>
-                    
-                    <!-- Estadísticas de palabras clave -->
-                    <div class="row mt-4">
-                        <div class="col-md-4">
-                            <div class="card border-info">
-                                <div class="card-body text-center">
-                                    <i class="bi bi-info-circle text-info" style="font-size: 2rem;"></i>
-                                    <h4 class="text-info mt-2">{% if 'Milei' in keywords %}1{% else %}0{% endif %}</h4>
-                                    <p class="text-muted mb-0">Solo Resúmenes</p>
-                                </div>
-                            </div>
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                            Total Palabras Clave
                         </div>
-                        <div class="col-md-4">
-                            <div class="card border-warning">
-                                <div class="card-body text-center">
-                                    <i class="bi bi-exclamation-triangle text-warning" style="font-size: 2rem;"></i>
-                                    <h4 class="text-warning mt-2">{% set count = 0 %}{% if 'Oscar Liberman' in keywords %}{% set count = count + 1 %}{% endif %}{% if 'Gustavo Coria' in keywords %}{% set count = count + 1 %}{% endif %}{{ count }}</h4>
-                                    <p class="text-muted mb-0">Notificaciones Importantes</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="card border-secondary">
-                                <div class="card-body text-center">
-                                    <i class="bi bi-search text-secondary" style="font-size: 2rem;"></i>
-                                    <h4 class="text-secondary mt-2">{% set special_keywords = ['Milei', 'Oscar Liberman', 'Gustavo Coria'] %}{% set count = 0 %}{% for keyword in keywords %}{% if keyword not in special_keywords %}{% set count = count + 1 %}{% endif %}{% endfor %}{{ count }}</h4>
-                                    <p class="text-muted mb-0">Monitoreo Estándar</p>
-                                </div>
-                            </div>
-                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ keywords|length }}</div>
                     </div>
-                {% else %}
-                    <div class="text-center py-5">
-                        <i class="bi bi-tags text-muted" style="font-size: 4rem;"></i>
-                        <h4 class="text-muted mt-3">No hay palabras clave configuradas</h4>
-                        <p class="text-muted">Agrega tu primera palabra clave usando el formulario de arriba</p>
+                    <div class="col-auto">
+                        <i class="fas fa-tags fa-2x text-gray-300"></i>
                     </div>
-                {% endif %}
+                </div>
             </div>
         </div>
     </div>
-</div>
-
-<!-- Información sobre tipos de monitoreo -->
-<div class="row mt-4">
-    <div class="col-12">
-        <div class="card border-info">
-            <div class="card-header bg-info text-white">
-                <h6 class="card-title mb-0">
-                    <i class="bi bi-info-circle"></i> Tipos de Monitoreo
-                </h6>
-            </div>
+    <div class="col-md-3">
+        <div class="card border-left-success">
             <div class="card-body">
-                <div class="row">
-                    <div class="col-md-4">
-                        <div class="d-flex align-items-start mb-3">
-                            <span class="badge bg-info me-3 mt-1">Solo resúmenes</span>
-                            <div>
-                                <h6 class="mb-1">Milei</h6>
-                                <small class="text-muted">Las menciones solo aparecen en los resúmenes horarios, sin notificaciones individuales.</small>
-                            </div>
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                            Alta Importancia
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">
+                            {% set high_count = keywords|selectattr('importance_level', 'equalto', 'high')|list|length %}
+                            {{ high_count }}
                         </div>
                     </div>
-                    <div class="col-md-4">
-                        <div class="d-flex align-items-start mb-3">
-                            <span class="badge bg-warning me-3 mt-1">Importantes</span>
-                            <div>
-                                <h6 class="mb-1">Oscar Liberman, Gustavo Coria</h6>
-                                <small class="text-muted">Notificaciones especiales enviadas en los resúmenes horarios.</small>
-                            </div>
+                    <div class="col-auto">
+                        <i class="fas fa-star fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-left-warning">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                            Palabras Primarias
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">
+                            {% set primary_count = keywords|selectattr('is_primary', 'equalto', true)|list|length %}
+                            {{ primary_count }}
                         </div>
                     </div>
-                    <div class="col-md-4">
-                        <div class="d-flex align-items-start mb-3">
-                            <span class="badge bg-secondary me-3 mt-1">Estándar</span>
-                            <div>
-                                <h6 class="mb-1">Otras palabras clave</h6>
-                                <small class="text-muted">Monitoreo estándar con registro en base de datos.</small>
-                            </div>
+                    <div class="col-auto">
+                        <i class="fas fa-key fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-left-info">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                            Total Menciones
                         </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">
+                            {% set total_hits = keywords|sum(attribute='hits_count') %}
+                            {{ total_hits }}
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-chart-line fa-2x text-gray-300"></i>
                     </div>
                 </div>
             </div>
@@ -175,33 +181,124 @@
     </div>
 </div>
 
-<!-- Consejos y mejores prácticas -->
-<div class="row mt-4">
+<div class="row">
     <div class="col-12">
-        <div class="card border-success">
-            <div class="card-header bg-success text-white">
-                <h6 class="card-title mb-0">
-                    <i class="bi bi-lightbulb"></i> Consejos para Palabras Clave
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="fas fa-tags"></i> Palabras Clave por Candidato
                 </h6>
             </div>
             <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <h6>Mejores prácticas:</h6>
-                        <ul class="list-unstyled">
-                            <li><i class="bi bi-check text-success"></i> Usa nombres completos para mayor precisión</li>
-                            <li><i class="bi bi-check text-success"></i> Evita palabras muy comunes que generen ruido</li>
-                            <li><i class="bi bi-check text-success"></i> Considera variaciones de escritura (con/sin acentos)</li>
-                        </ul>
+                {% if keywords %}
+                    <div class="table-responsive">
+                        <table class="table table-bordered" id="keywordsTable">
+                            <thead>
+                                <tr>
+                                    <th>Palabra Clave</th>
+                                    <th>Candidato</th>
+                                    <th>Partido</th>
+                                    <th>Importancia</th>
+                                    <th>Tipo</th>
+                                    <th>Menciones</th>
+                                    <th>Fecha Creación</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for keyword_data in keywords %}
+                                <tr>
+                                    <td>
+                                        <span class="badge badge-{{ 'primary' if keyword_data.is_primary else 'secondary' }} mr-1">
+                                            {{ keyword_data.keyword }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div>
+                                            <strong>{{ keyword_data.candidate_name }}</strong>
+                                            {% if keyword_data.candidate_full_name != keyword_data.candidate_name %}
+                                                <br><small class="text-muted">{{ keyword_data.candidate_full_name }}</small>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td>{{ keyword_data.political_party }}</td>
+                                    <td>
+                                        <span class="badge badge-{{ 'danger' if keyword_data.importance_level == 'high' else 'warning' if keyword_data.importance_level == 'medium' else 'secondary' }}">
+                                            {{ keyword_data.importance_level|title }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if keyword_data.is_primary %}
+                                            <span class="badge badge-primary">Primaria</span>
+                                        {% else %}
+                                            <span class="badge badge-light">Secundaria</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-info">{{ keyword_data.hits_count }}</span>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">{{ keyword_data.created_utc[:16] if keyword_data.created_utc else 'N/A' }}</small>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
                     </div>
-                    <div class="col-md-6">
-                        <h6>Ejemplos efectivos:</h6>
-                        <ul class="list-unstyled">
-                            <li><i class="bi bi-star text-warning"></i> "Javier Milei" (nombre completo)</li>
-                            <li><i class="bi bi-star text-warning"></i> "Oscar Liberman" (persona específica)</li>
-                            <li><i class="bi bi-star text-warning"></i> "Gustavo Coria" (nombre y apellido)</li>
-                        </ul>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-tags text-muted" style="font-size: 4rem;"></i>
+                        <h4 class="text-muted mt-3">No hay palabras clave de candidatos</h4>
+                        <p class="text-muted">Las palabras clave se generan automáticamente al agregar candidatos en el sistema.</p>
+                        <a href="{{ url_for('manage_candidates') }}" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Gestionar Candidatos
+                        </a>
                     </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Información adicional -->
+<div class="row">
+    <div class="col-md-6">
+        <div class="card border-left-info">
+            <div class="card-header">
+                <h6 class="m-0 font-weight-bold text-info">
+                    <i class="fas fa-info-circle"></i> Tipos de Palabras Clave
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <span class="badge badge-primary mr-2">Primaria</span>
+                    <small>Palabra clave principal del candidato (generalmente su nombre)</small>
+                </div>
+                <div class="mb-3">
+                    <span class="badge badge-light mr-2">Secundaria</span>
+                    <small>Palabras clave adicionales y variaciones del nombre</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card border-left-success">
+            <div class="card-header">
+                <h6 class="m-0 font-weight-bold text-success">
+                    <i class="fas fa-chart-bar"></i> Niveles de Importancia
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <span class="badge badge-danger mr-2">Alta</span>
+                    <small>Candidatos de máxima relevancia política</small>
+                </div>
+                <div class="mb-3">
+                    <span class="badge badge-warning mr-2">Media</span>
+                    <small>Candidatos de relevancia regional o sectorial</small>
+                </div>
+                <div class="mb-3">
+                    <span class="badge badge-secondary mr-2">Baja</span>
+                    <small>Candidatos de relevancia local</small>
                 </div>
             </div>
         </div>
@@ -211,43 +308,20 @@
 
 {% block scripts %}
 <script>
-    // Validación del formulario
-    const mainForm = document.querySelector('form');
-    if (mainForm) {
-        mainForm.addEventListener('submit', function(e) {
-        const keyword = document.getElementById('keyword').value.trim();
-        
-        if (!keyword) {
-            e.preventDefault();
-            alert('Por favor ingresa una palabra clave');
-            return false;
-        }
-        
-        if (keyword.length < 2) {
-            e.preventDefault();
-            alert('La palabra clave debe tener al menos 2 caracteres');
-            return false;
-        }
-        });
-    }
-    
-    // Confirmación para eliminar palabras clave
-    document.querySelectorAll('form[action*="remove_keyword"]').forEach(form => {
-        form.addEventListener('submit', function(e) {
-            const keyword = this.action.split('/').pop();
-            
-            if (!confirm(`¿Estás seguro de que quieres eliminar la palabra clave "${decodeURIComponent(keyword)}"?\n\nEsta acción no se puede deshacer.`)) {
-                e.preventDefault();
-            }
-        });
+$(document).ready(function() {
+    // Inicializar DataTable si hay datos
+    {% if keywords %}
+    $('#keywordsTable').DataTable({
+        "pageLength": 25,
+        "order": [[ 5, "desc" ]], // Ordenar por menciones descendente
+        "language": {
+            "url": "//cdn.datatables.net/plug-ins/1.10.24/i18n/Spanish.json"
+        },
+        "columnDefs": [
+            { "orderable": false, "targets": [4] } // Deshabilitar ordenamiento en columna Tipo
+        ]
     });
-    
-    // Tooltip para explicar los tipos de monitoreo
-    document.addEventListener('DOMContentLoaded', function() {
-        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-        tooltipTriggerList.map(function (tooltipTriggerEl) {
-            return new bootstrap.Tooltip(tooltipTriggerEl);
-        });
-    });
+    {% endif %}
+});
 </script>
 {% endblock %}

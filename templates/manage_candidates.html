@@ -1,0 +1,959 @@
+{% extends "base.html" %}
+
+{% block title %}Gestión de Candidatos - Candidatos PBA{% endblock %}
+
+{% block extra_css %}
+<style>
+.candidate-row:hover {
+    background-color: #f8f9fa;
+}
+
+.importance-high {
+    border-left: 4px solid #dc3545;
+}
+
+.importance-medium {
+    border-left: 4px solid #ffc107;
+}
+
+.importance-low {
+    border-left: 4px solid #28a745;
+}
+
+.alliance-logo {
+    border-radius: 3px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.alliance-badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.375rem;
+    font-weight: 500;
+}
+
+.alliance-container {
+    gap: 0.5rem;
+}
+
+/* Estilos actualizados para coincidir con la sidebar */
+.btn-primary {
+    background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+    border: none;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #1e40af 0%, #2563eb 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(30, 58, 138, 0.3);
+}
+
+.btn-outline-primary {
+    border: 2px solid #1e3a8a;
+    color: #1e3a8a;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.btn-outline-primary:hover {
+    background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+    border-color: #1e3a8a;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(30, 58, 138, 0.3);
+}
+
+.btn-outline-info {
+    border: 2px solid #3b82f6;
+    color: #3b82f6;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.btn-outline-info:hover {
+    background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
+    border-color: #3b82f6;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
+}
+
+.btn-outline-danger {
+    border: 2px solid #dc3545;
+    color: #dc3545;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.btn-outline-danger:hover {
+    background: linear-gradient(135deg, #dc3545 0%, #e74c3c 100%);
+    border-color: #dc3545;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(220, 53, 69, 0.3);
+}
+
+.btn-outline-secondary {
+    border: 2px solid #6c757d;
+    color: #6c757d;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.btn-outline-secondary:hover {
+    background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+    border-color: #6c757d;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(108, 117, 125, 0.3);
+}
+
+.card {
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 15px rgba(30, 58, 138, 0.2);
+}
+
+.card-header {
+    background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+    color: white;
+    border-radius: 15px 15px 0 0 !important;
+    border: none;
+}
+
+.form-select, .form-control {
+    border-radius: 8px;
+    border: 2px solid #e9ecef;
+    transition: all 0.3s ease;
+}
+
+.form-select:focus, .form-control:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.25);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<style>
+/* Mobile optimizations for manage candidates */
+@media (max-width: 767.98px) {
+    .filters-row {
+        flex-direction: column;
+    }
+    
+    .filters-row .col-md-2,
+    .filters-row .col-md-3 {
+        margin-bottom: 0.5rem;
+    }
+    
+    .candidate-manage-card {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-bottom: 1rem;
+        padding: 1rem;
+        border-left: 4px solid #667eea;
+    }
+    
+    .candidate-manage-card .candidate-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 0.75rem;
+    }
+    
+    .candidate-manage-card .candidate-name {
+        font-weight: bold;
+        font-size: 1.1rem;
+        color: #333;
+    }
+    
+    .candidate-manage-card .candidate-details {
+        margin-bottom: 0.75rem;
+    }
+    
+    .candidate-manage-card .detail-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.25rem;
+        font-size: 0.875rem;
+    }
+    
+    .candidate-manage-card .actions-mobile {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+    
+    .mobile-manage-view {
+        display: block;
+    }
+    
+    .desktop-manage-view {
+        display: none;
+    }
+}
+
+@media (min-width: 768px) {
+    .mobile-manage-view {
+        display: none;
+    }
+    
+    .desktop-manage-view {
+        display: block;
+    }
+}
+</style>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h3 class="card-title">Gestión de Candidatos Legislativos</h3>
+                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCandidateModal">
+                        <i class="bi bi-plus"></i> Agregar Candidato
+                    </button>
+                </div>
+                <div class="card-body">
+                    <!-- Filtros -->
+                    <div class="row mb-3">
+                        <div class="col-md-2">
+                            <label for="filterAlliance" class="form-label">Filtrar por Alianza</label>
+                            <select class="form-select" id="filterAlliance">
+                                <option value="">Todas las alianzas</option>
+                                {% for alliance in alliances %}
+                                    <option value="{{ alliance.display_name }}" style="color: {{ alliance.primary_color or '#000' }}">
+                                        {{ alliance.display_name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="filterElectoralSection" class="form-label">Sección Electoral</label>
+                            <select class="form-select" id="filterElectoralSection">
+                                <option value="">Todas las secciones</option>
+                                <option value="1">1. Primera Sección</option>
+                                <option value="2">2. Segunda Sección</option>
+                                <option value="3">3. Tercera Sección</option>
+                                <option value="4">4. Cuarta Sección</option>
+                                <option value="5">5. Quinta Sección</option>
+                                <option value="6">6. Sexta Sección</option>
+                                <option value="7">7. Séptima Sección</option>
+                                <option value="8">8. Octava Sección</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="filterParty" class="form-label">Filtrar por Partido</label>
+                            <input type="text" class="form-control" id="filterParty" placeholder="Buscar partido...">
+                        </div>
+                        <div class="col-md-2">
+                            <label for="filterStatus" class="form-label">Estado</label>
+                            <select class="form-select" id="filterStatus">
+                                <option value="">Todos</option>
+                                <option value="active">Activos</option>
+                                <option value="inactive">Inactivos</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="searchCandidate" class="form-label">Buscar Candidato</label>
+                            <input type="text" class="form-control" id="searchCandidate" placeholder="Buscar por nombre...">
+                        </div>
+                        <div class="col-md-1">
+                            <label class="form-label">&nbsp;</label>
+                            <button type="button" class="btn btn-outline-secondary d-block" id="clearFilters" title="Limpiar filtros">
+                                <i class="bi bi-x"></i>
+                            </button>
+                        </div>
+                    </div>
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show" role="alert">
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+                    
+                    <!-- Mobile Card View -->
+                    <div class="mobile-manage-view">
+                        {% for candidate in candidates %}
+                        <div class="candidate-manage-card">
+                            <div class="candidate-header">
+                                <div>
+                                    <div class="candidate-name">{{ candidate.name }}</div>
+                                    {% if candidate.full_name and candidate.full_name != candidate.name %}
+                                        <small class="text-muted">{{ candidate.full_name }}</small>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    {% if candidate.is_active %}
+                                        <span class="badge bg-success">Activo</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Inactivo</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="candidate-details">
+                                <div class="detail-row">
+                                    <span><strong>ID:</strong></span>
+                                    <span>{{ candidate.id }}</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span><strong>Cargo:</strong></span>
+                                    <span>{{ candidate.legislative_position or '-' }}</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span><strong>Sección:</strong></span>
+                                    <span><span class="badge bg-info">{{ candidate.electoral_section }}</span></span>
+                                </div>
+                                {% if candidate.political_party %}
+                                <div class="detail-row">
+                                    <span><strong>Partido:</strong></span>
+                                    <span><span class="badge bg-info text-white">{{ candidate.political_party }}</span></span>
+                                </div>
+                                {% endif %}
+                                {% if candidate.alliance_name %}
+                                <div class="detail-row">
+                                    <span><strong>Alianza:</strong></span>
+                                    <span><span class="badge" style="background-color: {{ candidate.alliance_color or '#6c757d' }}; color: white;">{{ candidate.alliance_name }}</span></span>
+                                </div>
+                                {% endif %}
+                                <div class="detail-row">
+                                    <span><strong>Importancia:</strong></span>
+                                    <span><span class="badge bg-{{ 'danger' if candidate.importance_level == 'high' else 'warning' if candidate.importance_level == 'medium' else 'secondary' }}">{{ candidate.importance_level|title }}</span></span>
+                                </div>
+                                {% if candidate.keywords %}
+                                <div class="detail-row">
+                                    <span><strong>Keywords:</strong></span>
+                                    <div>
+                                        {% for keyword in candidate.keywords[:3] %}
+                                            <span class="badge bg-info me-1">{{ keyword }}</span>
+                                        {% endfor %}
+                                        {% if candidate.keywords|length > 3 %}
+                                            <small class="text-muted">+{{ candidate.keywords|length - 3 }} más</small>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="actions-mobile">
+                                <a href="{{ url_for('edit_candidate', candidate_id=candidate.id) }}" 
+                                   class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-pencil"></i> Editar
+                                </a>
+                                <a href="{{ url_for('candidate_profile', candidate_id=candidate.id) }}" 
+                                   class="btn btn-sm btn-outline-info">
+                                    <i class="bi bi-person"></i> Perfil
+                                </a>
+                                <button type="button" class="btn btn-sm btn-outline-danger"
+                                        onclick="confirmDelete({{ candidate.id }}, '{{ candidate.name|replace("'", "\\'")|replace('"', '\\"') }}')"
+                                        title="Eliminar candidato">
+                                    <i class="bi bi-trash"></i> Eliminar
+                                </button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <!-- Desktop Table View -->
+                    <div class="table-responsive desktop-manage-view">
+                        <table id="candidatesTable" class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Nombre</th>
+                                    <th>Nombre Completo</th>
+                                    <th>Cargo Político</th>
+                                    <th>Sección Electoral</th>
+                                    <th>Distrito</th>
+                                    <th>Partido</th>
+                                    <th>Alianza</th>
+                                    <th>Lista</th>
+                                    <th>Importancia</th>
+                                    <th>Keywords</th>
+                                    <th>Estado</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for candidate in candidates %}
+                                <tr>
+                                    <td>{{ candidate.id }}</td>
+                                    <td>{{ candidate.name }}</td>
+                                    <td>{{ candidate.full_name or '-' }}</td>
+                                    <td>{{ candidate.legislative_position or '-' }}</td>
+                                    <td>
+                                        <span class="badge bg-info">Sección {{ candidate.electoral_section }}</span>
+                                    </td>
+                                    <td>{{ candidate.district or '-' }}</td>
+                                    <td>
+                                        {% if candidate.political_party %}
+                                            <span class="badge bg-info text-white">{{ candidate.political_party }}</span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if candidate.alliance_name %}
+                                            <div class="d-flex align-items-center alliance-container">
+                                                {% if candidate.alliance_logo_url %}
+                                                    <img src="{{ candidate.alliance_logo_url }}" alt="Logo {{ candidate.alliance_name }}" 
+                                                         class="alliance-logo" style="width: 20px; height: 20px; object-fit: contain;">
+                                                {% endif %}
+                                                <span class="alliance-badge" style="background-color: {{ candidate.alliance_color or '#6c757d' }}; color: white;">
+                                                    {{ candidate.alliance_name }}
+                                                </span>
+                                            </div>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if candidate.list_number %}
+                                        <span class="badge bg-secondary">Lista {{ candidate.list_number }}</span>
+                                        {% if candidate.list_position %}
+                                        <small class="text-muted">(Pos. {{ candidate.list_position }})</small>
+                                        {% endif %}
+                                        {% else %}
+                                        -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{{ 'danger' if candidate.importance_level == 'high' else 'warning' if candidate.importance_level == 'medium' else 'secondary' }}">
+                                            {{ candidate.importance_level|title }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% for keyword in candidate.keywords %}
+                                            <span class="badge bg-info me-1">{{ keyword }}</span>
+                                        {% endfor %}
+                                    </td>
+                                    <td>
+                                        {% if candidate.is_active %}
+                                            <span class="badge bg-success">Activo</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Inactivo</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <button type="button" class="btn btn-sm btn-outline-primary" 
+                                                    onclick="editCandidate({{ candidate.id }}, '{{ candidate.name }}', '{{ candidate.full_name or '' }}', '{{ candidate.description or '' }}', '{{ candidate.legislative_position or '' }}', {{ candidate.electoral_section }}, '{{ candidate.district or '' }}', '{{ candidate.political_party or '' }}', '{{ candidate.alliance_id or '' }}', '{{ candidate.list_number or '' }}', '{{ candidate.list_position or '' }}', '{{ candidate.importance_level }}', {{ candidate.is_active|lower }}, '{{ candidate.keywords|join(',') }}')"
+                                                    data-bs-toggle="modal" data-bs-target="#editCandidateModal"
+                                                    title="Editar candidato" data-bs-toggle="tooltip">
+                                                <i class="bi bi-pencil"></i> Editar
+                                            </button>
+                                            <a href="{{ url_for('candidate_profile', candidate_id=candidate.id) }}" 
+                                               class="btn btn-sm btn-outline-info"
+                                               title="Ver perfil del candidato" data-bs-toggle="tooltip">
+                                                <i class="bi bi-person"></i> Perfil
+                                            </a>
+                                            <button type="button" class="btn btn-sm btn-outline-danger"
+                                                    onclick="confirmDelete({{ candidate.id }}, '{{ candidate.name|replace("'", "\\'")|replace('"', '\\"') }}')"
+                                                    title="Eliminar candidato" data-bs-toggle="tooltip">
+                                                <i class="bi bi-trash"></i> Eliminar
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Agregar Candidato -->
+<div class="modal fade" id="addCandidateModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Agregar Nuevo Candidato</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('add_candidate') }}">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="name" class="form-label">Nombre *</label>
+                                <input type="text" class="form-control" id="name" name="name" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="full_name" class="form-label">Nombre Completo</label>
+                                <input type="text" class="form-control" id="full_name" name="full_name">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Descripción</label>
+                        <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="legislative_position" class="form-label">Cargo Político *</label>
+                                <select class="form-select" id="legislative_position" name="legislative_position" required>
+                                    <option value="">Seleccionar cargo...</option>
+                                    <!-- Opciones cargadas dinámicamente desde la API -->
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="electoral_section" class="form-label">Sección Electoral *</label>
+                                <select class="form-select" id="electoral_section" name="electoral_section" required>
+                                    <option value="">Seleccionar sección...</option>
+                                    <!-- Opciones cargadas dinámicamente desde la API -->
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="district" class="form-label">Distrito</label>
+                                <input type="text" class="form-control" id="district" name="district" value="Buenos Aires">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="political_party" class="form-label">Partido Político *</label>
+                                <input type="text" class="form-control" id="political_party" name="political_party" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="mb-3">
+                                <label for="alliance_id" class="form-label">Alianza Electoral</label>
+                                <select class="form-select" id="alliance_id" name="alliance_id">
+                                    <option value="">Sin alianza</option>
+                                    {% for alliance in alliances %}
+                                        <option value="{{ alliance.id }}" 
+                                                style="color: {{ alliance.primary_color or '#000' }}; font-weight: 500;"
+                                                data-logo="{{ alliance.logo_url or '' }}">
+                                            {{ alliance.display_name }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                                <div class="form-text">Selecciona la alianza electoral a la que pertenece este candidato.</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="list_number" class="form-label">Número de Lista</label>
+                                <input type="text" class="form-control" id="list_number" name="list_number" placeholder="Ej: 501">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="list_position" class="form-label">Posición en Lista</label>
+                                <input type="number" class="form-control" id="list_position" name="list_position" min="1" placeholder="Ej: 1">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="importance_level" class="form-label">Nivel de Importancia</label>
+                                <select class="form-select" id="importance_level" name="importance_level">
+                                    <option value="low">Bajo</option>
+                                    <option value="medium" selected>Medio</option>
+                                    <option value="high">Alto</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="keywords" class="form-label">Keywords (separadas por comas)</label>
+                        <input type="text" class="form-control" id="keywords" name="keywords" 
+                               placeholder="Ej: Kicillof, Axel Kicillof, Gobernador">
+                        <div class="form-text">Ingresa las palabras clave que se usarán para detectar menciones de este candidato.</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Agregar Candidato</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Editar Candidato -->
+<div class="modal fade" id="editCandidateModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Editar Candidato</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" id="editCandidateForm">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="edit_name" class="form-label">Nombre *</label>
+                                <input type="text" class="form-control" id="edit_name" name="name" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="edit_full_name" class="form-label">Nombre Completo</label>
+                                <input type="text" class="form-control" id="edit_full_name" name="full_name">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_description" class="form-label">Descripción</label>
+                        <textarea class="form-control" id="edit_description" name="description" rows="3"></textarea>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="edit_legislative_position" class="form-label">Cargo Político *</label>
+                                <select class="form-select" id="edit_legislative_position" name="legislative_position" required>
+                                    <option value="">Seleccionar cargo...</option>
+                                    <!-- Opciones cargadas dinámicamente desde la API -->
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="edit_electoral_section" class="form-label">Sección Electoral *</label>
+                                <select class="form-select" id="edit_electoral_section" name="electoral_section" required>
+                                    <option value="">Seleccionar sección...</option>
+                                    <!-- Opciones cargadas dinámicamente desde la API -->
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="edit_district" class="form-label">Distrito</label>
+                                <input type="text" class="form-control" id="edit_district" name="district">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="edit_political_party" class="form-label">Partido Político *</label>
+                                <input type="text" class="form-control" id="edit_political_party" name="political_party" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="mb-3">
+                                <label for="edit_alliance_id" class="form-label">Alianza Electoral</label>
+                                <select class="form-select" id="edit_alliance_id" name="alliance_id">
+                                    <option value="">Sin alianza</option>
+                                    {% for alliance in alliances %}
+                                        <option value="{{ alliance.id }}" 
+                                                style="color: {{ alliance.primary_color or '#000' }}; font-weight: 500;"
+                                                data-logo="{{ alliance.logo_url or '' }}">
+                                            {{ alliance.display_name }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="edit_list_number" class="form-label">Número de Lista</label>
+                                <input type="text" class="form-control" id="edit_list_number" name="list_number">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="edit_list_position" class="form-label">Posición en Lista</label>
+                                <input type="number" class="form-control" id="edit_list_position" name="list_position" min="1">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="edit_importance_level" class="form-label">Nivel de Importancia</label>
+                                <select class="form-select" id="edit_importance_level" name="importance_level">
+                                    <option value="low">Bajo</option>
+                                    <option value="medium">Medio</option>
+                                    <option value="high">Alto</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="edit_is_active" name="is_active">
+                                    <label class="form-check-label" for="edit_is_active">
+                                        Candidato Activo
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_keywords" class="form-label">Keywords (separadas por comas)</label>
+                        <input type="text" class="form-control" id="edit_keywords" name="keywords" 
+                               placeholder="Ej: Kicillof, Axel Kicillof, Gobernador">
+                        <div class="form-text">Ingresa las palabras clave que se usarán para detectar menciones de este candidato.</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Actualizar Candidato</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    $('#candidatesTable').DataTable({
+        "language": {
+            "url": "//cdn.datatables.net/plug-ins/1.10.24/i18n/Spanish.json"
+        },
+        "order": [[ 1, "asc" ]],
+        "pageLength": 25,
+        "scrollX": true
+    });
+    
+    // Cargar secciones electorales y cargos políticos
+    loadElectoralData();
+});
+
+// Función para cargar datos electorales desde la API
+function loadElectoralData() {
+    // Cargar secciones electorales
+    fetch('/api/electoral-sections')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const electoralSelects = ['electoral_section', 'edit_electoral_section'];
+                electoralSelects.forEach(selectId => {
+                    const select = document.getElementById(selectId);
+                    if (select) {
+                        // Limpiar opciones existentes excepto la primera
+                        while (select.children.length > 1) {
+                            select.removeChild(select.lastChild);
+                        }
+                        
+                        // Agregar nuevas opciones
+                        data.sections.forEach(section => {
+                            const option = document.createElement('option');
+                            option.value = section.numero;
+                            option.textContent = `${section.numero}. ${section.nombre} - ${section.descripcion}`;
+                            select.appendChild(option);
+                        });
+                    }
+                });
+            }
+        })
+        .catch(error => console.error('Error cargando secciones electorales:', error));
+    
+    // Cargar cargos políticos
+    fetch('/api/political-positions')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const positionSelects = ['legislative_position', 'edit_legislative_position'];
+                positionSelects.forEach(selectId => {
+                    const select = document.getElementById(selectId);
+                    if (select) {
+                        // Limpiar opciones existentes excepto la primera
+                        while (select.children.length > 1) {
+                            select.removeChild(select.lastChild);
+                        }
+                        
+                        // Agrupar por nivel
+                        const groupedPositions = {};
+                        data.positions.forEach(position => {
+                            if (!groupedPositions[position.nivel]) {
+                                groupedPositions[position.nivel] = [];
+                            }
+                            groupedPositions[position.nivel].push(position);
+                        });
+                        
+                        // Agregar opciones agrupadas
+                        Object.keys(groupedPositions).forEach(nivel => {
+                            const optgroup = document.createElement('optgroup');
+                            optgroup.label = `Cargos ${nivel}s`;
+                            
+                            groupedPositions[nivel].forEach(position => {
+                                const option = document.createElement('option');
+                                option.value = position.nombre;
+                                option.textContent = position.nombre;
+                                option.title = position.descripcion;
+                                optgroup.appendChild(option);
+                            });
+                            
+                            select.appendChild(optgroup);
+                        });
+                    }
+                });
+            }
+        })
+        .catch(error => console.error('Error cargando cargos políticos:', error));
+}
+
+function editCandidate(id, name, fullName, description, legislativePosition, electoralSection, district, politicalParty, allianceId, listNumber, listPosition, importanceLevel, isActive, keywords) {
+    document.getElementById('editCandidateForm').action = '/candidates/' + id + '/edit';
+    document.getElementById('edit_name').value = name;
+    document.getElementById('edit_full_name').value = fullName;
+    document.getElementById('edit_description').value = description;
+    document.getElementById('edit_legislative_position').value = legislativePosition;
+    document.getElementById('edit_electoral_section').value = electoralSection;
+    document.getElementById('edit_district').value = district;
+    document.getElementById('edit_political_party').value = politicalParty;
+    document.getElementById('edit_alliance_id').value = allianceId || '';
+    document.getElementById('edit_list_number').value = listNumber;
+    document.getElementById('edit_list_position').value = listPosition;
+    document.getElementById('edit_importance_level').value = importanceLevel;
+    document.getElementById('edit_is_active').checked = isActive;
+    document.getElementById('edit_keywords').value = keywords;
+}
+
+// Funcionalidad de filtrado
+function filterCandidates() {
+    const allianceFilter = document.getElementById('filterAlliance').value.toLowerCase();
+    const electoralSectionFilter = document.getElementById('filterElectoralSection').value;
+    const partyFilter = document.getElementById('filterParty').value.toLowerCase();
+    const statusFilter = document.getElementById('filterStatus').value;
+    const searchFilter = document.getElementById('searchCandidate').value.toLowerCase();
+    
+    const rows = document.querySelectorAll('tbody tr');
+    let visibleCount = 0;
+    
+    rows.forEach(row => {
+        const allianceCell = row.cells[7]; // Columna de alianza
+        const electoralSectionCell = row.cells[4]; // Columna de sección electoral
+        const partyCell = row.cells[6]; // Columna de partido
+        const nameCell = row.cells[1]; // Columna de nombre
+        const statusCell = row.cells[11]; // Columna de estado
+        
+        const allianceText = allianceCell ? allianceCell.textContent.toLowerCase() : '';
+        const electoralSectionText = electoralSectionCell ? electoralSectionCell.textContent : '';
+        const partyText = partyCell ? partyCell.textContent.toLowerCase() : '';
+        const nameText = nameCell ? nameCell.textContent.toLowerCase() : '';
+        const isActive = statusCell ? statusCell.querySelector('.badge.bg-success') !== null : false;
+        
+        let showRow = true;
+        
+        // Filtro por alianza
+        if (allianceFilter && !allianceText.includes(allianceFilter)) {
+            showRow = false;
+        }
+        
+        // Filtro por sección electoral
+        if (electoralSectionFilter && !electoralSectionText.includes('Sección ' + electoralSectionFilter)) {
+            showRow = false;
+        }
+        
+        // Filtro por partido
+        if (partyFilter && !partyText.includes(partyFilter)) {
+            showRow = false;
+        }
+        
+        // Filtro por estado
+        if (statusFilter === 'active' && !isActive) {
+            showRow = false;
+        } else if (statusFilter === 'inactive' && isActive) {
+            showRow = false;
+        }
+        
+        // Filtro por búsqueda de nombre
+        if (searchFilter && !nameText.includes(searchFilter)) {
+            showRow = false;
+        }
+        
+        row.style.display = showRow ? '' : 'none';
+        if (showRow) visibleCount++;
+    });
+    
+    // Mostrar contador de resultados
+    updateResultsCounter(visibleCount, rows.length);
+}
+
+function updateResultsCounter(visible, total) {
+    let counter = document.getElementById('resultsCounter');
+    if (!counter) {
+        counter = document.createElement('div');
+        counter.id = 'resultsCounter';
+        counter.className = 'text-muted small mb-2';
+        const table = document.querySelector('.table-responsive');
+        table.parentNode.insertBefore(counter, table);
+    }
+    counter.textContent = `Mostrando ${visible} de ${total} candidatos`;
+}
+
+function clearAllFilters() {
+    document.getElementById('filterAlliance').value = '';
+    document.getElementById('filterElectoralSection').value = '';
+    document.getElementById('filterParty').value = '';
+    document.getElementById('filterStatus').value = '';
+    document.getElementById('searchCandidate').value = '';
+    filterCandidates();
+}
+
+// Función para confirmar eliminación de candidato
+function confirmDelete(candidateId, candidateName) {
+    if (confirm(`¿Estás seguro de que quieres eliminar al candidato "${candidateName}"?\n\nEsta acción marcará al candidato como inactivo y desactivará sus keywords asociadas.`)) {
+        // Crear formulario dinámicamente
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/candidates/${candidateId}/delete`;
+        form.style.display = 'none';
+        
+        // Agregar al DOM y enviar
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+// Inicializar tooltips de Bootstrap y filtros
+document.addEventListener('DOMContentLoaded', function() {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+    
+    // Agregar event listeners para los filtros
+    document.getElementById('filterAlliance').addEventListener('change', filterCandidates);
+    document.getElementById('filterElectoralSection').addEventListener('change', filterCandidates);
+    document.getElementById('filterParty').addEventListener('input', filterCandidates);
+    document.getElementById('filterStatus').addEventListener('change', filterCandidates);
+    document.getElementById('searchCandidate').addEventListener('input', filterCandidates);
+    document.getElementById('clearFilters').addEventListener('click', clearAllFilters);
+    
+    // Inicializar contador
+    filterCandidates();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,288 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard de Candidatos - Candidatos PBA{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Estilos actualizados para coincidir con la sidebar */
+.btn-primary {
+    background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+    border: none;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #1e40af 0%, #2563eb 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(30, 58, 138, 0.3);
+}
+
+.btn-outline-primary {
+    border: 2px solid #1e3a8a;
+    color: #1e3a8a;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.btn-outline-primary:hover {
+    background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+    border-color: #1e3a8a;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(30, 58, 138, 0.3);
+}
+
+.btn-outline-info {
+    border: 2px solid #3b82f6;
+    color: #3b82f6;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.btn-outline-info:hover {
+    background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
+    border-color: #3b82f6;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
+}
+
+.card {
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 15px rgba(30, 58, 138, 0.2);
+}
+
+.card-header {
+    background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+    color: white;
+    border-radius: 15px 15px 0 0 !important;
+    border: none;
+}
+
+.border-left-primary {
+    border-left: 4px solid #1e3a8a !important;
+}
+
+.border-left-success {
+    border-left: 4px solid #059669 !important;
+}
+
+.border-left-warning {
+    border-left: 4px solid #d97706 !important;
+}
+
+.border-left-info {
+    border-left: 4px solid #0284c7 !important;
+}
+
+.text-primary {
+    color: #1e3a8a !important;
+}
+
+.table {
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.badge {
+    border-radius: 6px;
+    font-weight: 500;
+}
+
+
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0 text-gray-800">Candidatos monitoreados</h1>
+                <div class="d-none d-lg-inline-block">
+                    <span class="text-muted">{{ current_time.strftime('%d/%m/%Y %H:%M') }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+    <!-- Lista de Candidatos -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow mb-4">
+                <div class="card-body">
+                    {% if candidates %}
+                    
+                    <!-- Tabla de Candidatos -->
+                    <div class="table-responsive">
+                        <table class="table table-bordered" id="candidatesTable" width="100%" cellspacing="0">
+                            <thead>
+                                <tr>
+                                    <th>Nombre</th>
+                                    <th>Cargo</th>
+                                    <th>Sección Electoral</th>
+                                    <th>Partido</th>
+                                    <th>Menciones</th>
+                                    <th>Artículos</th>
+                                    <th>Primera Mención</th>
+                                    <th>Última Mención</th>
+                                    <th>Estado</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for candidate in candidates %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="mr-3">
+                                                <div class="icon-circle bg-primary">
+                                                    <i class="fas fa-user text-white"></i>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <div class="font-weight-bold">{{ candidate.full_name or candidate.name }}</div>
+                                                {% if candidate.description %}
+                                                    <div class="text-muted small">{{ candidate.description[:50] }}{% if candidate.description|length > 50 %}...{% endif %}</div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>{{ candidate.legislative_position or '-' }}</td>
+                                    <td>
+                                        <span class="badge bg-info text-white">Sección {{ candidate.electoral_section }}</span>
+                                    </td>
+                                    <td>
+                                        {% if candidate.political_party %}
+                                            <span class="badge bg-info text-white">{{ candidate.political_party }}</span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-primary rounded-pill">{{ candidate.total_mentions }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary rounded-pill">{{ candidate.unique_articles }}</span>
+                                    </td>
+                                    <td>
+                                        {% if candidate.first_mention %}
+                                            <span class="text-muted small">{{ candidate.first_mention.strftime('%d/%m/%Y') }}</span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if candidate.last_mention %}
+                                            <span class="text-muted small">{{ candidate.last_mention.strftime('%d/%m/%Y') }}</span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if candidate.is_active %}
+                                            <span class="badge bg-success">Activo</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Inactivo</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group" aria-label="Acciones del candidato">
+                                            <a href="{{ url_for('candidate_profile', candidate_id=candidate.id) }}" 
+                                               class="btn btn-sm btn-outline-primary" title="Ver detalles" data-bs-toggle="tooltip">
+                                                <i class="bi bi-eye"></i> Ver
+                                            </a>
+                                            <a href="{{ url_for('manage_candidates') }}" 
+                                               class="btn btn-sm btn-outline-secondary" title="Gestionar" data-bs-toggle="tooltip">
+                                                <i class="bi bi-gear"></i> Gestionar
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-users fa-3x text-gray-300 mb-3"></i>
+                        <h5 class="text-gray-600">No hay candidatos registrados</h5>
+                        <p class="text-muted">Comienza agregando candidatos para monitorear sus menciones en los medios.</p>
+                        <a href="{{ url_for('manage_candidates') }}" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Agregar Candidato
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráfico de Menciones por Candidato -->
+    {% if candidates %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Menciones por Candidato (Últimos 30 días)</h6>
+                </div>
+                <div class="card-body">
+                    <canvas id="mentionsChart" width="100%" height="40"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    $('#candidatesTable').DataTable({
+        "language": {
+            "url": "//cdn.datatables.net/plug-ins/1.10.24/i18n/Spanish.json"
+        },
+        "order": [[ 4, "desc" ]],
+        "pageLength": 25
+    });
+
+    {% if candidates %}
+    // Gráfico de menciones
+    var ctx = document.getElementById('mentionsChart').getContext('2d');
+    var mentionsChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: [{% for candidate in candidates %}'{{ candidate.name }}'{% if not loop.last %},{% endif %}{% endfor %}],
+            datasets: [{
+                label: 'Menciones',
+                data: [{% for candidate in candidates %}{{ candidate.total_mentions }}{% if not loop.last %},{% endif %}{% endfor %}],
+                backgroundColor: 'rgba(78, 115, 223, 0.8)',
+                borderColor: 'rgba(78, 115, 223, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+    {% endif %}
+});
+</script>
+{% endblock %}

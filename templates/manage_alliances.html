@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Alianzas Electorales - RSS Monitor</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .alliance-card {
+            border-left: 4px solid;
+            transition: all 0.3s ease;
+        }
+        .alliance-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .color-preview {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: inline-block;
+            border: 2px solid #dee2e6;
+        }
+        .alliance-logo {
+            max-width: 50px;
+            max-height: 50px;
+            object-fit: contain;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('dashboard') }}">
+                <i class="fas fa-chart-line me-2"></i>RSS Monitor
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="{{ url_for('dashboard') }}">Dashboard</a>
+                <a class="nav-link" href="{{ url_for('manage_candidates') }}">Candidatos</a>
+                <a class="nav-link active" href="{{ url_for('manage_alliances') }}">Alianzas</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <!-- Mensajes Flash -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-handshake me-2"></i>Alianzas Electorales</h5>
+                        <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addAllianceModal">
+                            <i class="fas fa-plus me-1"></i>Nueva Alianza
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        {% if alliances %}
+                            <div class="row">
+                                {% for alliance in alliances %}
+                                    <div class="col-md-6 mb-3">
+                                        <div class="card alliance-card" style="border-left-color: {{ alliance.primary_color or '#6c757d' }}">
+                                            <div class="card-body">
+                                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                                    <h6 class="card-title mb-0">{{ alliance.display_name }}</h6>
+                                                    <div class="dropdown">
+                                                        <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="dropdown">
+                                                            <i class="fas fa-ellipsis-v"></i>
+                                                        </button>
+                                                        <ul class="dropdown-menu">
+                                                            <li><a class="dropdown-item" href="#" onclick="editAlliance({{ alliance.id }})"><i class="fas fa-edit me-2"></i>Editar</a></li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                                
+                                                {% if alliance.logo_url %}
+                                                    <img src="{{ alliance.logo_url }}" alt="Logo" class="alliance-logo mb-2">
+                                                {% endif %}
+                                                
+                                                <p class="card-text small text-muted mb-2">{{ alliance.description or 'Sin descripción' }}</p>
+                                                
+                                                <div class="d-flex align-items-center">
+                                                    <span class="me-2 small">Colores:</span>
+                                                    <div class="color-preview me-2" style="background-color: {{ alliance.primary_color or '#6c757d' }}" title="Color primario"></div>
+                                                    {% if alliance.secondary_color %}
+                                                        <div class="color-preview" style="background-color: {{ alliance.secondary_color }}" title="Color secundario"></div>
+                                                    {% endif %}
+                                                </div>
+                                                
+                                                <div class="mt-2">
+                                                    <span class="badge {{ 'bg-success' if alliance.is_active else 'bg-secondary' }}">
+                                                        {{ 'Activa' if alliance.is_active else 'Inactiva' }}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="text-center py-4">
+                                <i class="fas fa-handshake fa-3x text-muted mb-3"></i>
+                                <p class="text-muted">No hay alianzas electorales registradas</p>
+                                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addAllianceModal">
+                                    <i class="fas fa-plus me-1"></i>Crear Primera Alianza
+                                </button>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>Información</h6>
+                    </div>
+                    <div class="card-body">
+                        <p class="small text-muted">
+                            Las alianzas electorales permiten agrupar candidatos y partidos políticos bajo una misma coalición.
+                        </p>
+                        <ul class="small text-muted">
+                            <li>Personaliza colores y logos</li>
+                            <li>Agrupa candidatos por alianza</li>
+                            <li>Facilita el análisis electoral</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Agregar Alianza -->
+    <div class="modal fade" id="addAllianceModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form method="POST" action="{{ url_for('add_alliance') }}">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Nueva Alianza Electoral</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Nombre Interno *</label>
+                            <input type="text" class="form-control" id="name" name="name" required>
+                            <div class="form-text">Nombre único para identificar la alianza en el sistema</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="display_name" class="form-label">Nombre de Visualización *</label>
+                            <input type="text" class="form-control" id="display_name" name="display_name" required>
+                            <div class="form-text">Nombre que se mostrará públicamente</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Descripción</label>
+                            <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="primary_color" class="form-label">Color Primario</label>
+                                    <input type="color" class="form-control form-control-color" id="primary_color" name="primary_color" value="#0d6efd">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="secondary_color" class="form-label">Color Secundario</label>
+                                    <input type="color" class="form-control form-control-color" id="secondary_color" name="secondary_color" value="#6c757d">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="logo_url" class="form-label">URL del Logo</label>
+                            <input type="url" class="form-control" id="logo_url" name="logo_url">
+                            <div class="form-text">URL de la imagen del logo de la alianza</div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Crear Alianza</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Editar Alianza -->
+    <div class="modal fade" id="editAllianceModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form method="POST" id="editAllianceForm">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Editar Alianza Electoral</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="edit_name" class="form-label">Nombre Interno *</label>
+                            <input type="text" class="form-control" id="edit_name" name="name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit_display_name" class="form-label">Nombre de Visualización *</label>
+                            <input type="text" class="form-control" id="edit_display_name" name="display_name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit_description" class="form-label">Descripción</label>
+                            <textarea class="form-control" id="edit_description" name="description" rows="3"></textarea>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="edit_primary_color" class="form-label">Color Primario</label>
+                                    <input type="color" class="form-control form-control-color" id="edit_primary_color" name="primary_color">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="edit_secondary_color" class="form-label">Color Secundario</label>
+                                    <input type="color" class="form-control form-control-color" id="edit_secondary_color" name="secondary_color">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit_logo_url" class="form-label">URL del Logo</label>
+                            <input type="url" class="form-control" id="edit_logo_url" name="logo_url">
+                        </div>
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="edit_is_active" name="is_active">
+                                <label class="form-check-label" for="edit_is_active">
+                                    Alianza activa
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const alliances = {{ alliances | tojson }};
+        
+        function editAlliance(allianceId) {
+            const alliance = alliances.find(a => a.id === allianceId);
+            if (!alliance) return;
+            
+            // Llenar el formulario
+            document.getElementById('edit_name').value = alliance.name || '';
+            document.getElementById('edit_display_name').value = alliance.display_name || '';
+            document.getElementById('edit_description').value = alliance.description || '';
+            document.getElementById('edit_primary_color').value = alliance.primary_color || '#0d6efd';
+            document.getElementById('edit_secondary_color').value = alliance.secondary_color || '#6c757d';
+            document.getElementById('edit_logo_url').value = alliance.logo_url || '';
+            document.getElementById('edit_is_active').checked = alliance.is_active;
+            
+            // Configurar la acción del formulario
+            document.getElementById('editAllianceForm').action = `/alliances/${allianceId}/edit`;
+            
+            // Mostrar el modal
+            new bootstrap.Modal(document.getElementById('editAllianceModal')).show();
+        }
+    </script>
+</body>
+</html>

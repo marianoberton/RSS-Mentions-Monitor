@@ -1,7 +1,105 @@
 {% extends "base.html" %}
 
-{% block title %}Dashboard - RSS Mentions Monitor{% endblock %}
+{% block title %}Dashboard - Candidatos PBA{% endblock %}
 {% block page_title %}Dashboard{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Estilos actualizados para coincidir con la sidebar */
+.btn-primary {
+    background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+    border: none;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #1e40af 0%, #2563eb 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(30, 58, 138, 0.3);
+}
+
+.btn-outline-primary {
+    border: 2px solid #1e3a8a;
+    color: #1e3a8a;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.btn-outline-primary:hover {
+    background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+    border-color: #1e3a8a;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(30, 58, 138, 0.3);
+}
+
+.card {
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 15px rgba(30, 58, 138, 0.2);
+}
+
+.card-header {
+    border-radius: 15px 15px 0 0 !important;
+    border: none;
+}
+
+.card-header.bg-primary {
+    background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%) !important;
+}
+
+.card-header.bg-success {
+    background: linear-gradient(135deg, #059669 0%, #10b981 100%) !important;
+}
+
+.card-header.bg-info {
+    background: linear-gradient(135deg, #0284c7 0%, #0ea5e9 100%) !important;
+}
+
+.card-header.bg-warning {
+    background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%) !important;
+}
+
+.stat-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+}
+
+.stat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+}
+
+.badge {
+    border-radius: 6px;
+    font-weight: 500;
+}
+
+.table {
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.list-group-item {
+    border-radius: 8px;
+    margin-bottom: 4px;
+    transition: all 0.2s ease;
+}
+
+.list-group-item:hover {
+    background-color: #f8f9fa;
+    transform: translateX(5px);
+}
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="row mb-4">
@@ -107,7 +205,7 @@
             </div>
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <span>Monitor RSS</span>
+                    <span>Candidatos PBA</span>
                     <span class="badge bg-success">Activo</span>
                 </div>
                 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -123,6 +221,96 @@
                         <i class="bi bi-play-circle"></i> Ejecutar Test
                     </a>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Salud de Feeds -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-heart-pulse"></i> Salud de Feeds RSS
+                </h5>
+                <div>
+                    <span class="badge bg-success me-2">{{ feed_health.healthy_feeds }} Saludables</span>
+                    <span class="badge bg-danger">{{ feed_health.error_feeds }} Con Errores</span>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if feed_health.feeds %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Estado</th>
+                                    <th>Feed</th>
+                                    <th>Último Éxito</th>
+                                    <th>Errores</th>
+                                    <th>Próxima Ejecución</th>
+                                    <th>Intervalo</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for feed in feed_health.feeds %}
+                                    <tr class="{% if feed.status == 'error' %}table-danger{% endif %}">
+                                        <td>
+                                            {% if feed.status == 'healthy' %}
+                                                <span class="badge bg-success">
+                                                    <i class="bi bi-check-circle"></i> Saludable
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-danger">
+                                                    <i class="bi bi-exclamation-triangle"></i> Error
+                                                </span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <strong>{{ feed.name }}</strong>
+                                            {% if not feed.is_enabled %}
+                                                <span class="badge bg-secondary ms-2">Deshabilitado</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if feed.last_success_utc %}
+                                                <small class="text-muted">{{ feed.last_success_utc[:19] }}</small>
+                                            {% else %}
+                                                <span class="text-muted">Nunca</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if feed.error_count > 0 %}
+                                                <span class="badge bg-danger">{{ feed.error_count }}</span>
+                                                {% if feed.last_error %}
+                                                    <br><small class="text-danger">{{ feed.last_error[:50] }}...</small>
+                                                {% endif %}
+                                            {% else %}
+                                                <span class="text-success">0</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if feed.next_run_at %}
+                                                <small class="text-muted">{{ feed.next_run_at[:19] }}</small>
+                                            {% else %}
+                                                <span class="text-muted">No programado</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-info">{{ feed.fetch_interval_minutes }}min</span>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-rss text-muted" style="font-size: 3rem;"></i>
+                        <p class="text-muted mt-2">No hay feeds configurados</p>
+                    </div>
+                {% endif %}
             </div>
         </div>
     </div>

@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+
+{% block title %}Menciones de {{ candidate.full_name or candidate.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header con información del candidato -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-auto">
+                            <div class="icon-circle bg-primary" style="height: 3rem; width: 3rem;">
+                                <i class="fas fa-user fa-lg text-white"></i>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <h1 class="h4 mb-1">{{ candidate.full_name or candidate.name }}</h1>
+                            <p class="text-muted mb-1">{{ candidate.political_party }}</p>
+                            <span class="badge badge-secondary">Sección Electoral {{ candidate.electoral_section }}</span>
+                        </div>
+                        <div class="col-auto">
+                            <a href="{{ url_for('candidate_profile', candidate_id=candidate.id) }}" class="btn btn-outline-primary me-2">
+                                <i class="fas fa-user"></i> Ver Perfil
+                            </a>
+                            <a href="{{ url_for('candidates_dashboard') }}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Volver
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="bi bi-funnel"></i> Filtros
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <form method="GET" action="{{ url_for('candidate_mentions', candidate_id=candidate.id) }}">
+                        <div class="row align-items-end">
+                            <div class="col-md-4">
+                                <label for="feed" class="form-label">Fuente</label>
+                                <select name="feed" id="feed" class="form-select">
+                                    <option value="">Todas las fuentes</option>
+                                    {% for feed in available_feeds %}
+                                        <option value="{{ feed }}" {% if feed == current_feed %}selected{% endif %}>
+                                            {{ feed }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <button type="submit" class="btn btn-primary me-2">
+                                    <i class="bi bi-search"></i> Filtrar
+                                </button>
+                                <a href="{{ url_for('candidate_mentions', candidate_id=candidate.id) }}" class="btn btn-outline-secondary">
+                                    <i class="bi bi-x-circle"></i> Limpiar
+                                </a>
+                            </div>
+                        </div>
+                        <input type="hidden" name="page" value="1">
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista de menciones -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="bi bi-chat-quote"></i> Menciones de {{ candidate.name }}
+                        {% if current_feed %}
+                            <span class="badge bg-info ms-2">{{ current_feed }}</span>
+                        {% endif %}
+                    </h5>
+                    <span class="badge bg-primary">{{ total_mentions }} menciones totales</span>
+                </div>
+                <div class="card-body">
+                    {% if mentions %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Palabra Clave</th>
+                                        <th>Artículo</th>
+                                        <th>Fuente</th>
+                                        <th>Contexto</th>
+                                        <th>Fecha Detección</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for mention in mentions %}
+                                        <tr>
+                                            <td>
+                                                <span class="badge bg-success">{{ mention.keyword }}</span>
+                                            </td>
+                                            <td>
+                                                <div class="fw-bold">{{ mention.article_title[:60] }}{% if mention.article_title|length > 60 %}...{% endif %}</div>
+                                                <small class="text-muted">{{ mention.published_utc[:16] }}</small>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-secondary">{{ mention.site }}</span>
+                                            </td>
+                                            <td>
+                                                <small class="text-muted">
+                                                    {{ mention.where_found[:100] }}{% if mention.where_found|length > 100 %}...{% endif %}
+                                                </small>
+                                            </td>
+                                            <td>
+                                                <small class="text-muted">
+                                                    {{ mention.detected_utc[:19] }}
+                                                </small>
+                                            </td>
+                                            <td>
+                                                <a href="{{ mention.article_link }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                                    <i class="bi bi-box-arrow-up-right"></i> Ver
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="bi bi-chat-quote display-1 text-muted"></i>
+                            <h4 class="text-muted mt-3">No se encontraron menciones</h4>
+                            <p class="text-muted">No hay menciones que coincidan con los filtros seleccionados para este candidato.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Paginación -->
+    {% if total_pages > 1 %}
+        <div class="row mt-4">
+            <div class="col-12">
+                <nav aria-label="Paginación de menciones">
+                    <ul class="pagination justify-content-center">
+                        {% if has_prev %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('candidate_mentions', candidate_id=candidate.id, page=page-1, feed=current_feed) }}">
+                                    <i class="bi bi-chevron-left"></i> Anterior
+                                </a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link">
+                                    <i class="bi bi-chevron-left"></i> Anterior
+                                </span>
+                            </li>
+                        {% endif %}
+
+                        {% set start_page = [1, page - 2]|max %}
+                        {% set end_page = [total_pages, page + 2]|min %}
+
+                        {% if start_page > 1 %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('candidate_mentions', candidate_id=candidate.id, page=1, feed=current_feed) }}">1</a>
+                            </li>
+                            {% if start_page > 2 %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">...</span>
+                                </li>
+                            {% endif %}
+                        {% endif %}
+
+                        {% for p in range(start_page, end_page + 1) %}
+                            {% if p == page %}
+                                <li class="page-item active">
+                                    <span class="page-link">{{ p }}</span>
+                                </li>
+                            {% else %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('candidate_mentions', candidate_id=candidate.id, page=p, feed=current_feed) }}">{{ p }}</a>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+
+                        {% if end_page < total_pages %}
+                            {% if end_page < total_pages - 1 %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">...</span>
+                                </li>
+                            {% endif %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('candidate_mentions', candidate_id=candidate.id, page=total_pages, feed=current_feed) }}">{{ total_pages }}</a>
+                            </li>
+                        {% endif %}
+
+                        {% if has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('candidate_mentions', candidate_id=candidate.id, page=page+1, feed=current_feed) }}">
+                                    Siguiente <i class="bi bi-chevron-right"></i>
+                                </a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link">
+                                    Siguiente <i class="bi bi-chevron-right"></i>
+                                </span>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<style>
+.icon-circle {
+    border-radius: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.table td {
+    vertical-align: middle;
+}
+</style>
+{% endblock %}

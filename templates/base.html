@@ -3,13 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}RSS Mentions Monitor{% endblock %}</title>
+    <title>{% block title %}Candidatos PBA{% endblock %}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css" rel="stylesheet">
     <style>
         .sidebar {
             min-height: 100vh;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+            transition: transform 0.3s ease;
+            position: relative;
+        }
+        
+        .sidebar::before {
+            content: '';
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 80px;
+            background-image: url('https://www.infocielo.com/wp-content/uploads/2024/12/imagepng-3145.png');
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            opacity: 0.8;
         }
         .sidebar .nav-link {
             color: rgba(255, 255, 255, 0.8);
@@ -27,14 +45,119 @@
             background-color: #f8f9fa;
             min-height: 100vh;
         }
+        
+        /* Mobile optimizations */
+        @media (max-width: 767.98px) {
+            .sidebar {
+                position: fixed;
+                top: 0;
+                left: -100%;
+                width: 280px;
+                height: 100vh;
+                z-index: 1050;
+                transform: translateX(-100%);
+            }
+            .sidebar.show {
+                transform: translateX(0);
+                left: 0;
+            }
+            .main-content {
+                margin-left: 0 !important;
+                padding-left: 15px;
+                padding-right: 15px;
+            }
+            .mobile-overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background-color: rgba(0, 0, 0, 0.5);
+                z-index: 1040;
+                display: none;
+            }
+            .mobile-overlay.show {
+                display: block;
+            }
+            .mobile-header {
+                background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+                color: white;
+                padding: 1rem;
+                position: sticky;
+                top: 0;
+                z-index: 1030;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .hamburger {
+                background: none;
+                border: none;
+                color: white;
+                font-size: 1.5rem;
+                padding: 0.5rem;
+                border-radius: 4px;
+                transition: background-color 0.3s ease;
+            }
+            .hamburger:hover {
+                background-color: rgba(255, 255, 255, 0.1);
+            }
+            .table-responsive {
+                font-size: 0.875rem;
+            }
+            .btn {
+                font-size: 0.875rem;
+                padding: 0.375rem 0.75rem;
+            }
+            .card {
+                margin-bottom: 1rem;
+            }
+            .stat-card .card-body {
+                padding: 1rem;
+            }
+        }
+        
+        @media (max-width: 575.98px) {
+            .table-responsive {
+                font-size: 0.75rem;
+            }
+            .btn-sm {
+                font-size: 0.75rem;
+                padding: 0.25rem 0.5rem;
+            }
+            .card-body {
+                padding: 1rem;
+            }
+        }
         .card {
             border: none;
             border-radius: 15px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            transition: transform 0.3s ease;
+            transition: transform 0.2s, box-shadow 0.2s;
         }
         .card:hover {
             transform: translateY(-2px);
+            box-shadow: 0 8px 15px rgba(30, 58, 138, 0.2);
+        }
+        
+        /* PBA Colors */
+        .btn-primary {
+            background-color: #1e3a8a;
+            border-color: #1e3a8a;
+        }
+        .btn-primary:hover {
+            background-color: #1e40af;
+            border-color: #1e40af;
+        }
+        .bg-primary {
+            background-color: #1e3a8a !important;
+        }
+        .text-primary {
+            color: #1e3a8a !important;
+        }
+        .badge.bg-success {
+            background-color: #3b82f6 !important;
+        }
+        .badge.bg-warning {
+            background-color: #60a5fa !important;
         }
         .stat-card {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -69,13 +192,27 @@
     </style>
 </head>
 <body>
+    <!-- Mobile header -->
+    <div class="mobile-header d-md-none">
+        <div class="d-flex justify-content-between align-items-center">
+            <button class="hamburger" type="button" onclick="toggleSidebar()">
+                <i class="bi bi-list"></i>
+            </button>
+            <h5 class="mb-0"><i class="bi bi-rss"></i> Candidatos PBA</h5>
+            <div style="width: 48px;"></div> <!-- Spacer for centering -->
+        </div>
+    </div>
+    
+    <!-- Mobile overlay -->
+    <div class="mobile-overlay" onclick="closeSidebar()"></div>
+    
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
-            <nav class="col-md-3 col-lg-2 d-md-block sidebar collapse">
+            <nav class="col-md-3 col-lg-2 d-md-block sidebar collapse" id="sidebar">
                 <div class="position-sticky pt-3">
-                    <div class="text-center mb-4">
-                        <h4 class="text-white"><i class="bi bi-rss"></i> RSS Monitor</h4>
+                    <div class="text-center mb-4" style="margin-top: 100px;">
+                        <h4 class="text-white"><i class="bi bi-rss"></i> Candidatos PBA</h4>
                     </div>
                     <ul class="nav flex-column">
                         <li class="nav-item">
@@ -91,6 +228,21 @@
                         <li class="nav-item">
                             <a class="nav-link {% if request.endpoint == 'keywords_management' %}active{% endif %}" href="{{ url_for('keywords_management') }}">
                                 <i class="bi bi-tags"></i> Palabras Clave
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'candidates_dashboard' or request.endpoint == 'candidate_profile' %}active{% endif %}" href="{{ url_for('candidates_dashboard') }}">
+                                <i class="bi bi-people"></i> Candidatos
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'manage_candidates' %}active{% endif %}" href="{{ url_for('manage_candidates') }}">
+                                <i class="bi bi-person-gear"></i> Gestionar Candidatos
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'subscriptions_dashboard' %}active{% endif %}" href="{{ url_for('subscriptions_dashboard') }}">
+                                <i class="bi bi-telegram"></i> Suscripciones Telegram
                             </a>
                         </li>
                         <li class="nav-item">
@@ -127,7 +279,7 @@
                 <div class="pt-3 pb-2 mb-3">
                     <nav class="navbar navbar-expand-lg navbar-light bg-white rounded shadow-sm mb-4">
                         <div class="container-fluid">
-                            <span class="navbar-brand mb-0 h1">{% block page_title %}RSS Mentions Monitor{% endblock %}</span>
+                            <span class="navbar-brand mb-0 h1">{% block page_title %}Candidatos PBA{% endblock %}</span>
                             <div class="navbar-nav ms-auto">
                                 <span class="nav-link text-muted">
                                     <i class="bi bi-clock"></i> {{ current_time.strftime('%d/%m/%Y %H:%M') }}
@@ -156,6 +308,9 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/moment.min.js"></script>
     <script>
         // Auto-refresh stats every 30 seconds
@@ -182,6 +337,50 @@
 
         // Refresh stats every 30 seconds
         setInterval(refreshStats, 30000);
+
+        // Mobile menu functions
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.querySelector('.mobile-overlay');
+            
+            sidebar.classList.toggle('show');
+            overlay.classList.toggle('show');
+            
+            // Prevent body scroll when menu is open
+            if (sidebar.classList.contains('show')) {
+                document.body.style.overflow = 'hidden';
+            } else {
+                document.body.style.overflow = '';
+            }
+        }
+        
+        function closeSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.querySelector('.mobile-overlay');
+            
+            sidebar.classList.remove('show');
+            overlay.classList.remove('show');
+            document.body.style.overflow = '';
+        }
+        
+        // Close sidebar when clicking on nav links in mobile
+        document.addEventListener('DOMContentLoaded', function() {
+            // Close sidebar on nav link click (mobile)
+            document.querySelectorAll('.sidebar .nav-link').forEach(function(link) {
+                link.addEventListener('click', function() {
+                    if (window.innerWidth < 768) {
+                        closeSidebar();
+                    }
+                });
+            });
+            
+            // Close sidebar on window resize if desktop
+            window.addEventListener('resize', function() {
+                if (window.innerWidth >= 768) {
+                    closeSidebar();
+                }
+            });
+        });
 
         // Format timestamps
         document.addEventListener('DOMContentLoaded', function() {

@@ -4,23 +4,37 @@ from typing import Dict, Any, List
 from bs4 import BeautifulSoup
 
 from app.config import config
-from app.feeds import get_enabled_feeds
-from app.fetch import fetch_feed
+from app.feeds import get_enabled_feeds, get_feeds_for_processing
+from app.fetch import fetch_feed, fetch_feed_with_cache, FeedNotModifiedException
+from app.storage import update_feed_state
 from app.matcher import find_keyword
-from app.storage import save_article_and_hit, get_db_connection, get_unprocessed_articles, update_article_content, get_hourly_stats, get_important_hits
-from app.notifier import send_telegram_notification, send_hourly_summary, send_important_hits_notifications, send_immediate_important_notification
+from app.storage import save_article_and_hit, get_db_connection, get_unprocessed_articles, update_article_content, get_hourly_stats, get_important_hits, get_all_active_keywords
+from app.notifier import send_telegram_notification, send_hourly_summary, send_important_hits_notifications, send_immediate_important_notification, send_candidate_notification, get_candidate_id_by_keyword
 from app.utils import get_utc_now, format_date, generate_article_id
 from app.feed_extractor import extraer_contenido_feed, tiene_contenido_completo
 
 logger = logging.getLogger(__name__)
 
 def process_feed(feed: Dict[str, Any], keywords: List[str]):
-    """Processes a single RSS feed."""
+    """Processes a single RSS feed with ETag/Last-Modified support."""
     logger.info(f"Fetching feed: {feed['name']}")
+    
     try:
-        parsed_feed = fetch_feed(feed)
+        # Intentar fetch con cache headers
+        parsed_feed, etag, last_modified = fetch_feed_with_cache(feed)
+        
+        # Actualizar estado del feed como exitoso
+        update_feed_state(feed['name'], success=True, etag=etag, last_modified=last_modified)
+        
+    except FeedNotModifiedException:
+        # Feed no modificado, actualizar estado sin procesar artículos
+        logger.info(f"Feed {feed['name']} no modificado, saltando procesamiento")
+        update_feed_state(feed['name'], success=True)
+        return
+        
     except Exception as e:
         logger.error(f"Failed to fetch feed {feed['name']}: {e}")
+        update_feed_state(feed['name'], success=False, error_msg=str(e))
         return
 
     for entry in parsed_feed.entries:
@@ -61,9 +75,14 @@ def process_feed(feed: Dict[str, Any], keywords: List[str]):
             }
             save_article_and_hit(article, hit)
             
-            # Enviar notificación inmediata para menciones importantes
-            if any(name in keyword.lower() for name in ['liberman', 'coria', 'andres de leo']):
-                send_immediate_important_notification(article, hit)
+            # Enviar notificación inmediata usando el nuevo sistema de candidatos
+            candidate_id = get_candidate_id_by_keyword(keyword)
+            if candidate_id:
+                send_candidate_notification(candidate_id, article, hit, 'mention')
+            else:
+                # Fallback al sistema anterior para compatibilidad
+                if any(name in keyword.lower() for name in ['liberman', 'coria', 'andres de leo']):
+                    send_immediate_important_notification(article, hit)
             
             continue
 
@@ -79,9 +98,14 @@ def process_feed(feed: Dict[str, Any], keywords: List[str]):
                 }
                 save_article_and_hit(article, hit)
                 
-                # Enviar notificación inmediata para menciones importantes
-                if any(name in keyword.lower() for name in ['liberman', 'coria', 'andres de leo']):
-                    send_immediate_important_notification(article, hit)
+                # Enviar notificación inmediata usando el nuevo sistema de candidatos
+                candidate_id = get_candidate_id_by_keyword(keyword)
+                if candidate_id:
+                    send_candidate_notification(candidate_id, article, hit, 'mention')
+                else:
+                    # Fallback al sistema anterior para compatibilidad
+                    if any(name in keyword.lower() for name in ['liberman', 'coria', 'andres de leo']):
+                        send_immediate_important_notification(article, hit)
                 
                 continue
             
@@ -119,7 +143,7 @@ def extract_article_content(url: str) -> str:
 def process_article_content():
     """Procesa artículos pendientes para extraer su contenido y buscar palabras clave."""
     logger.info("Starting article content processing task.")
-    keywords = config["keywords"]
+    keywords = get_all_active_keywords()  # Usar función que incluye keywords de candidatos
     enabled_feeds = [feed["name"] for feed in get_enabled_feeds()]
     unprocessed_articles = get_unprocessed_articles(limit=10)
     
@@ -182,10 +206,14 @@ def process_article_content():
                     # Guardar el hit usando la función segura que previene duplicados
                     save_article_and_hit(article_details, hit)
                     
-                    # No enviar notificaciones individuales para ninguna palabra clave
-                    # Las notificaciones de Liberman y Coria se envían en el resumen horario
-                    # Las de Milei solo aparecen en estadísticas del resumen horario
-                    pass
+                    # Enviar notificación usando el nuevo sistema de candidatos
+                    candidate_id = get_candidate_id_by_keyword(keyword)
+                    if candidate_id:
+                        send_candidate_notification(candidate_id, article_details, hit, 'mention')
+                    else:
+                        # Fallback: no enviar notificaciones individuales para palabras clave sin candidato asociado
+                        # Las notificaciones se envían en el resumen horario
+                        pass
                 
                 # Actualizar el artículo con el contenido y marcarlo como procesado
                 # Solo actualizar si no teníamos contenido previo
@@ -212,11 +240,19 @@ def process_article_content():
     logger.info("Article content processing task finished.")
 
 def main_task():
-    """The main task to be run by the scheduler."""
+    """The main task to be run by the scheduler with adaptive scheduling."""
     logger.info("Starting RSS mention monitoring task.")
-    feeds = get_enabled_feeds()
-    keywords = config["keywords"]
-
+    
+    # Obtener feeds listos para procesamiento según su schedule
+    feeds = get_feeds_for_processing()
+    keywords = get_all_active_keywords()  # Usar función que incluye keywords de candidatos
+    
+    if not feeds:
+        logger.info("No hay feeds listos para procesar en este momento")
+        return
+    
+    logger.info(f"Procesando {len(feeds)} feeds listos con {len(keywords)} keywords activas")
+    
     for feed in feeds:
         process_feed(feed, keywords)
     
@@ -245,3 +281,106 @@ def daily_summary():
     """Sends a daily summary of mentions."""
     # This is a placeholder for the daily summary logic
     logger.info("Generating daily summary.")
+
+def send_candidate_digests():
+    """Envía resúmenes diarios a todos los candidatos con suscripciones activas."""
+    from app.storage import get_db_connection
+    from app.notifier import send_candidate_digest
+    from datetime import datetime, timedelta
+    
+    logger.info("Iniciando envío de digests diarios de candidatos")
+    
+    try:
+        conn = get_db_connection()
+        with conn:
+            # Obtener todos los candidatos activos
+            cursor = conn.execute("""
+                SELECT DISTINCT c.id, c.name
+                FROM candidates c
+                JOIN candidate_subscriptions cs ON c.id = cs.candidate_id
+                WHERE c.is_active = 1 AND cs.is_active = 1
+                AND cs.notification_types IN ('all', 'digest')
+            """)
+            candidates = cursor.fetchall()
+            
+            # Calcular fecha de ayer para el resumen
+            yesterday = datetime.now() - timedelta(days=1)
+            yesterday_str = yesterday.strftime('%Y-%m-%d')
+            
+            for candidate_id, candidate_name in candidates:
+                try:
+                    # Obtener estadísticas de menciones del candidato para ayer
+                    cursor = conn.execute("""
+                        SELECT 
+                            COUNT(*) as total_mentions,
+                            COUNT(DISTINCT a.site) as sites_count
+                        FROM hits h
+                        JOIN articles a ON h.article_id = a.id
+                        JOIN candidate_keywords ck ON h.keyword = ck.keyword
+                        WHERE ck.candidate_id = ? 
+                        AND DATE(h.detected_utc) = ?
+                        AND ck.is_active = 1
+                    """, (candidate_id, yesterday_str))
+                    
+                    stats = cursor.fetchone()
+                    total_mentions = stats[0] if stats else 0
+                    
+                    if total_mentions == 0:
+                        logger.info(f"No hay menciones para {candidate_name} en {yesterday_str}, omitiendo digest")
+                        continue
+                    
+                    # Obtener sitios con más menciones
+                    cursor = conn.execute("""
+                        SELECT a.site, COUNT(*) as mention_count
+                        FROM hits h
+                        JOIN articles a ON h.article_id = a.id
+                        JOIN candidate_keywords ck ON h.keyword = ck.keyword
+                        WHERE ck.candidate_id = ? 
+                        AND DATE(h.detected_utc) = ?
+                        AND ck.is_active = 1
+                        GROUP BY a.site
+                        ORDER BY mention_count DESC
+                        LIMIT 5
+                    """, (candidate_id, yesterday_str))
+                    
+                    top_sites = cursor.fetchall()
+                    
+                    # Obtener menciones recientes
+                    cursor = conn.execute("""
+                        SELECT DISTINCT a.title, a.link, a.site, h.detected_utc
+                        FROM hits h
+                        JOIN articles a ON h.article_id = a.id
+                        JOIN candidate_keywords ck ON h.keyword = ck.keyword
+                        WHERE ck.candidate_id = ? 
+                        AND DATE(h.detected_utc) = ?
+                        AND ck.is_active = 1
+                        ORDER BY h.detected_utc DESC
+                        LIMIT 5
+                    """, (candidate_id, yesterday_str))
+                    
+                    recent_mentions = [{
+                        'title': row[0],
+                        'link': row[1],
+                        'site': row[2],
+                        'detected_utc': row[3]
+                    } for row in cursor.fetchall()]
+                    
+                    # Crear resumen
+                    mentions_summary = {
+                        'total_mentions': total_mentions,
+                        'top_sites': top_sites,
+                        'recent_mentions': recent_mentions,
+                        'date': yesterday_str
+                    }
+                    
+                    # Enviar digest
+                    send_candidate_digest(candidate_id, mentions_summary)
+                    logger.info(f"Digest enviado para {candidate_name}: {total_mentions} menciones")
+                    
+                except Exception as e:
+                    logger.error(f"Error enviando digest para candidato {candidate_name} (ID: {candidate_id}): {e}")
+            
+            logger.info(f"Proceso de digests completado. {len(candidates)} candidatos procesados")
+            
+    except Exception as e:
+        logger.error(f"Error en send_candidate_digests: {e}")

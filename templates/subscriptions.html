@@ -1,0 +1,214 @@
+{% extends "base.html" %}
+
+{% block title %}Suscripciones de Telegram{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h3 class="card-title">Suscripciones de Telegram por Candidato</h3>
+                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addSubscriptionModal">
+                        <i class="fas fa-plus"></i> Agregar Suscripción
+                    </button>
+                </div>
+                <div class="card-body">
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show" role="alert">
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+                    
+                    <div class="table-responsive">
+                        <table id="subscriptionsTable" class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Candidato</th>
+                                    <th>Partido Político</th>
+                                    <th>Chat ID de Telegram</th>
+                                    <th>Nombre del Suscriptor</th>
+                                    <th>Tipos de Notificación</th>
+                                    <th>Fecha de Creación</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for subscription in subscriptions %}
+                                <tr>
+                                    <td>{{ subscription[0] }}</td>
+                                    <td>
+                                        <strong>{{ subscription[2] }}</strong>
+                                        <br><small class="text-muted">{{ subscription[3] }}</small>
+                                    </td>
+                                    <td>{{ subscription[3] }}</td>
+                                    <td>
+                                        <code>{{ subscription[4] }}</code>
+                                    </td>
+                                    <td>{{ subscription[5] or 'Sin nombre' }}</td>
+                                    <td>
+                                        <span class="badge bg-info">{{ subscription[6] }}</span>
+                                    </td>
+                                    <td>{{ subscription[7][:10] }}</td>
+                                    <td>
+                                        <form method="POST" action="{{ url_for('remove_subscription') }}" style="display: inline;" 
+                                              onsubmit="return confirm('¿Estás seguro de que quieres eliminar esta suscripción?')">
+                                            <input type="hidden" name="candidate_id" value="{{ subscription[1] }}">
+                                            <input type="hidden" name="telegram_chat_id" value="{{ subscription[4] }}">
+                                            <button type="submit" class="btn btn-sm btn-danger">
+                                                <i class="fas fa-trash"></i> Eliminar
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="8" class="text-center text-muted">
+                                        <i class="fas fa-inbox fa-2x mb-2"></i>
+                                        <br>No hay suscripciones configuradas
+                                        <br><small>Agrega una suscripción para recibir notificaciones de Telegram</small>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para agregar suscripción -->
+<div class="modal fade" id="addSubscriptionModal" tabindex="-1" aria-labelledby="addSubscriptionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addSubscriptionModalLabel">Agregar Nueva Suscripción</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="{{ url_for('add_subscription') }}">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="candidate_id" class="form-label">Candidato *</label>
+                                <select class="form-select" id="candidate_id" name="candidate_id" required>
+                                    <option value="">Seleccionar candidato...</option>
+                                    {% for candidate in candidates %}
+                                    <option value="{{ candidate.id }}">
+                                        {{ candidate.name }} ({{ candidate.political_party }})
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="telegram_chat_id" class="form-label">Chat ID de Telegram *</label>
+                                <input type="text" class="form-control" id="telegram_chat_id" name="telegram_chat_id" 
+                                       placeholder="123456789 o -123456789" required>
+                                <div class="form-text">
+                                    <small>Para obtener tu Chat ID, envía /start al bot @userinfobot en Telegram</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="subscriber_name" class="form-label">Nombre del Suscriptor</label>
+                                <input type="text" class="form-control" id="subscriber_name" name="subscriber_name" 
+                                       placeholder="Nombre completo (opcional)">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="subscriber_username" class="form-label">Usuario de Telegram</label>
+                                <input type="text" class="form-control" id="subscriber_username" name="subscriber_username" 
+                                       placeholder="@usuario (opcional)">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="notification_types" class="form-label">Tipos de Notificación</label>
+                        <select class="form-select" id="notification_types" name="notification_types">
+                            <option value="all">Todas las menciones</option>
+                            <option value="urgent">Solo menciones urgentes</option>
+                            <option value="digest">Solo resúmenes diarios</option>
+                        </select>
+                        <div class="form-text">
+                            <small>Selecciona qué tipo de notificaciones quieres recibir</small>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>Importante:</strong> Asegúrate de que el bot de Telegram tenga permisos para enviar mensajes al Chat ID especificado.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Agregar Suscripción</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+$(document).ready(function() {
+    // Inicializar DataTable
+    $('#subscriptionsTable').DataTable({
+        "pageLength": 25,
+        "order": [[ 6, "desc" ]], // Ordenar por fecha de creación
+        "language": {
+            "url": "//cdn.datatables.net/plug-ins/1.10.24/i18n/Spanish.json"
+        },
+        "columnDefs": [
+            { "orderable": false, "targets": 7 } // Columna de acciones no ordenable
+        ]
+    });
+    
+    // Validación del formulario
+    $('#addSubscriptionModal form').on('submit', function(e) {
+        const chatId = $('#telegram_chat_id').val().trim();
+        const candidateId = $('#candidate_id').val();
+        
+        if (!candidateId) {
+            e.preventDefault();
+            alert('Por favor selecciona un candidato');
+            return false;
+        }
+        
+        if (!chatId) {
+            e.preventDefault();
+            alert('Por favor ingresa un Chat ID de Telegram');
+            return false;
+        }
+        
+        // Validar formato de Chat ID
+        if (!/^-?\d+$/.test(chatId)) {
+            e.preventDefault();
+            alert('El Chat ID debe ser numérico (ej: 123456789 o -123456789)');
+            return false;
+        }
+        
+        return true;
+    });
+    
+    // Limpiar formulario al cerrar modal
+    $('#addSubscriptionModal').on('hidden.bs.modal', function () {
+        $(this).find('form')[0].reset();
+    });
+});
+</script>
+{% endblock %}
