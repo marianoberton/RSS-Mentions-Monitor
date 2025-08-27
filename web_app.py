@@ -1340,6 +1340,27 @@ def tools_dashboard():
                 'script': 'migrate_db.py',
                 'category': 'mantenimiento',
                 'icon': '🗄️'
+            },
+            {
+                'name': 'Debug APIs Candidatos',
+                'description': 'Verifica el estado de las APIs y base de datos para el formulario de candidatos',
+                'script': 'debug_api_endpoints.py',
+                'category': 'diagnostico',
+                'icon': '🐛'
+            },
+            {
+                'name': 'Debug Frontend Candidatos',
+                'description': 'Verifica la estructura HTML y JavaScript del formulario de candidatos',
+                'script': 'debug_frontend.py',
+                'category': 'diagnostico',
+                'icon': '🔍'
+            },
+            {
+                'name': 'Solucionar Dropdowns Candidatos',
+                'description': 'Diagnóstico completo y soluciones para opciones faltantes en formulario',
+                'script': 'fix_candidate_dropdowns.py',
+                'category': 'diagnostico',
+                'icon': '🔧'
             }
         ]
         
@@ -1368,7 +1389,10 @@ def run_tool(script_name):
             'verificar_optimizacion.py',
             'analizar_efectividad.py',
             'check_content_status.py',
-            'migrate_db.py'
+            'migrate_db.py',
+            'debug_api_endpoints.py',
+            'debug_frontend.py',
+            'fix_candidate_dropdowns.py'
         ]
         
         if script_name not in allowed_scripts:
