@@ -430,8 +430,10 @@ class DatabaseMigrator:
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS electoral_alliances (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL,
                     display_name TEXT NOT NULL UNIQUE,
                     description TEXT,
+                    logo_url TEXT,
                     primary_color TEXT DEFAULT '#007bff',
                     secondary_color TEXT DEFAULT '#6c757d',
                     created_utc TEXT NOT NULL,
@@ -465,6 +467,44 @@ class DatabaseMigrator:
             logger.error(f"Error en migración 006: {e}")
             raise
     
+    def migration_007_fix_electoral_alliances(self):
+        """Migración 007: Agregar columnas faltantes a electoral_alliances"""
+        migration_name = "007_fix_electoral_alliances"
+        
+        if migration_name in self.migrations_applied:
+            return
+            
+        logger.info("Aplicando migración 007: Corrigiendo tabla electoral_alliances")
+        
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            
+            # Verificar si las columnas ya existen
+            cursor.execute("PRAGMA table_info(electoral_alliances)")
+            columns = [column[1] for column in cursor.fetchall()]
+            
+            # Agregar columna 'name' si no existe
+            if 'name' not in columns:
+                cursor.execute("ALTER TABLE electoral_alliances ADD COLUMN name TEXT")
+                # Actualizar registros existentes para que name = display_name
+                cursor.execute("UPDATE electoral_alliances SET name = display_name WHERE name IS NULL")
+                logger.info("✅ Columna 'name' agregada a electoral_alliances")
+            
+            # Agregar columna 'logo_url' si no existe
+            if 'logo_url' not in columns:
+                cursor.execute("ALTER TABLE electoral_alliances ADD COLUMN logo_url TEXT")
+                logger.info("✅ Columna 'logo_url' agregada a electoral_alliances")
+            
+            conn.commit()
+            conn.close()
+            
+            self.mark_migration_applied(migration_name)
+            
+        except Exception as e:
+            logger.error(f"Error en migración 007: {e}")
+            raise
+    
     def run_all_migrations(self):
         """Ejecuta todas las migraciones necesarias"""
         logger.info("Iniciando proceso de migración de base de datos")
@@ -480,7 +520,8 @@ class DatabaseMigrator:
             self.migration_003_add_missing_columns,
             self.migration_004_create_indexes,
             self.migration_005_create_fts_tables,
-            self.migration_006_create_candidates_system
+            self.migration_006_create_candidates_system,
+            self.migration_007_fix_electoral_alliances
         ]
         
         for migration in migrations:
