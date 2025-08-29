@@ -504,6 +504,127 @@ class DatabaseMigrator:
         except Exception as e:
             logger.error(f"Error en migración 007: {e}")
             raise
+
+    def migration_008_create_electoral_data_tables(self):
+        """Migración 008: Crear tablas de datos electorales (political_positions y electoral_sections)"""
+        migration_name = "008_create_electoral_data_tables"
+        
+        if migration_name in self.migrations_applied:
+            return
+            
+        logger.info("Aplicando migración 008: Crear tablas de datos electorales")
+        
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            
+            # Tabla de secciones electorales
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS electoral_sections (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    numero INTEGER NOT NULL UNIQUE,
+                    nombre TEXT NOT NULL,
+                    descripcion TEXT,
+                    provincia TEXT DEFAULT 'Buenos Aires',
+                    municipios TEXT, -- JSON string con lista de municipios
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            
+            # Tabla de catálogo de cargos
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS political_positions (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    nombre TEXT NOT NULL,
+                    nivel TEXT NOT NULL, -- Nacional, Provincial, Municipal
+                    tipo TEXT NOT NULL, -- Ejecutivo, Legislativo, Judicial, etc.
+                    descripcion TEXT,
+                    is_active INTEGER DEFAULT 1,
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            
+            # Índices para optimizar consultas
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_electoral_sections_numero ON electoral_sections(numero)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_electoral_sections_provincia ON electoral_sections(provincia)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_political_positions_nivel ON political_positions(nivel)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_political_positions_tipo ON political_positions(tipo)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_political_positions_active ON political_positions(is_active)")
+            
+            # Poblar con datos iniciales
+            self._seed_electoral_sections(cursor)
+            self._seed_political_positions(cursor)
+            
+            conn.commit()
+            conn.close()
+            
+            self.mark_migration_applied(migration_name)
+            
+        except Exception as e:
+            logger.error(f"Error en migración 008: {e}")
+            raise
+    
+    def _seed_electoral_sections(self, cursor):
+        """Poblar tabla de secciones electorales con datos de PBA"""
+        import json
+        
+        # Verificar si ya existen datos
+        cursor.execute("SELECT COUNT(*) FROM electoral_sections")
+        existing_count = cursor.fetchone()[0]
+        
+        if existing_count > 0:
+            logger.info(f"Ya existen {existing_count} secciones electorales")
+            return
+        
+        # Datos de secciones electorales de PBA
+        secciones = [
+            {"numero": 1, "nombre": "Primera Sección Electoral", "descripcion": "Zona Norte del Gran Buenos Aires", "municipios": ["Vicente López", "San Isidro", "San Fernando", "Tigre", "Escobar", "Pilar", "José C. Paz", "Malvinas Argentinas", "San Miguel", "Hurlingham", "Ituzaingó", "Tres de Febrero", "Morón", "General San Martín"]},
+            {"numero": 2, "nombre": "Segunda Sección Electoral", "descripcion": "Zona Oeste del Gran Buenos Aires", "municipios": ["La Matanza", "Merlo", "Moreno", "General Rodríguez", "Luján", "Marcos Paz"]},
+            {"numero": 3, "nombre": "Tercera Sección Electoral", "descripcion": "Zona Sur del Gran Buenos Aires", "municipios": ["Almirante Brown", "Avellaneda", "Berazategui", "Esteban Echeverría", "Ezeiza", "Florencio Varela", "Lanús", "Lomas de Zamora", "Quilmes"]},
+            {"numero": 4, "nombre": "Cuarta Sección Electoral", "descripcion": "Zona Centro-Este", "municipios": ["Berisso", "Brandsen", "Ensenada", "La Plata", "Magdalena", "Presidente Perón", "San Vicente"]},
+            {"numero": 5, "nombre": "Quinta Sección Electoral", "descripcion": "Zona Centro-Norte", "municipios": ["Campana", "Exaltación de la Cruz", "San Antonio de Areco", "San Andrés de Giles", "Zárate", "Baradero", "Ramallo", "San Pedro", "Arrecifes", "Capitán Sarmiento", "Carmen de Areco", "Pergamino", "Rojas", "Salto", "Colón", "San Nicolás"]},
+            {"numero": 6, "nombre": "Sexta Sección Electoral", "descripcion": "Zona Centro-Oeste", "municipios": ["25 de Mayo", "9 de Julio", "Alberti", "Bragado", "Carlos Casares", "Carlos Tejedor", "Chivilcoy", "General Arenales", "General Pinto", "General Viamonte", "General Villegas", "Junín", "Leandro N. Alem", "Lincoln", "Mercedes", "Pehuajó", "Rivadavia", "Trenque Lauquen"]},
+            {"numero": 7, "nombre": "Séptima Sección Electoral", "descripcion": "Zona Sur-Oeste", "municipios": ["Adolfo Alsina", "Bahía Blanca", "Coronel de Marina Leonardo Rosales", "Coronel Dorrego", "Coronel Pringles", "Coronel Suárez", "Daireaux", "Guaminí", "Hipólito Yrigoyen", "Monte Hermoso", "Patagones", "Pellegrini", "Puán", "Saavedra", "Tornquist", "Tres Lomas", "Villarino"]},
+            {"numero": 8, "nombre": "Octava Sección Electoral", "descripcion": "Zona Centro-Sur", "municipios": ["Ayacucho", "Azul", "Benito Juárez", "Bolívar", "Castelli", "Chascomús", "Dolores", "General Alvarado", "General Belgrano", "General Guido", "General Juan Madariaga", "General La Madrid", "General Lavalle", "General Paz", "Laprida", "Las Flores", "Lobería", "Lobos", "Maipú", "Mar Chiquita", "Monte", "Necochea", "Olavarría", "Partido de la Costa", "Pinamar", "Punta Indio", "Rauch", "Roque Pérez", "Saladillo", "San Cayetano", "Tandil", "Tapalqué", "Tordillo", "Villa Gesell"]}
+        ]
+        
+        # Insertar secciones electorales
+        for seccion in secciones:
+            municipios_json = json.dumps(seccion['municipios'], ensure_ascii=False)
+            cursor.execute("""
+                INSERT INTO electoral_sections (numero, nombre, descripcion, municipios)
+                VALUES (?, ?, ?, ?)
+            """, (seccion['numero'], seccion['nombre'], seccion['descripcion'], municipios_json))
+        
+        logger.info(f"Insertadas {len(secciones)} secciones electorales de PBA")
+    
+    def _seed_political_positions(self, cursor):
+        """Poblar tabla de cargos políticos"""
+        # Verificar si ya existen datos
+        cursor.execute("SELECT COUNT(*) FROM political_positions")
+        existing_count = cursor.fetchone()[0]
+        
+        if existing_count > 0:
+            logger.info(f"Ya existen {existing_count} cargos políticos")
+            return
+        
+        # Catálogo de cargos políticos
+        cargos = [
+            {"nombre": "Diputado Provincial", "nivel": "Provincial", "tipo": "Legislativo", "descripcion": "Miembro de la Legislatura Provincial"},
+            {"nombre": "Diputado Nacional", "nivel": "Nacional", "tipo": "Legislativo", "descripcion": "Miembro de la Cámara de Diputados de la Nación"},
+            {"nombre": "Senador Provincial", "nivel": "Provincial", "tipo": "Legislativo", "descripcion": "Miembro del Senado Provincial (donde existe)"}
+        ]
+        
+        # Insertar cargos políticos
+        for cargo in cargos:
+            cursor.execute("""
+                INSERT INTO political_positions (nombre, nivel, tipo, descripcion)
+                VALUES (?, ?, ?, ?)
+            """, (cargo['nombre'], cargo['nivel'], cargo['tipo'], cargo['descripcion']))
+        
+        logger.info(f"Insertados {len(cargos)} cargos políticos")
     
     def run_all_migrations(self):
         """Ejecuta todas las migraciones necesarias"""
@@ -521,7 +642,8 @@ class DatabaseMigrator:
             self.migration_004_create_indexes,
             self.migration_005_create_fts_tables,
             self.migration_006_create_candidates_system,
-            self.migration_007_fix_electoral_alliances
+            self.migration_007_fix_electoral_alliances,
+            self.migration_008_create_electoral_data_tables
         ]
         
         for migration in migrations:
@@ -542,7 +664,7 @@ class DatabaseMigrator:
             cursor = conn.cursor()
             
             # Verificar que las tablas principales existen
-            required_tables = ['articles', 'hits', 'feed_state', 'persons', 'person_keywords', 'articles_fts', 'candidates', 'candidate_keywords', 'electoral_alliances', 'notifications']
+            required_tables = ['articles', 'hits', 'feed_state', 'persons', 'person_keywords', 'articles_fts', 'candidates', 'candidate_keywords', 'electoral_alliances', 'notifications', 'political_positions', 'electoral_sections']
             
             for table in required_tables:
                 if self.check_table_exists(table):
