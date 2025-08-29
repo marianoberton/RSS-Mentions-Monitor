@@ -21,7 +21,7 @@ from typing import Dict, List, Tuple
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from app.storage import get_db_connection
-from app.feed_processor import process_feed
+from app.tasks import process_feed
 from app.mention_detector import find_mentions_in_article
 
 # Configurar logging
@@ -52,9 +52,9 @@ class EjecutarTodoProcessor:
             conn = get_db_connection()
             with conn:
                 cursor = conn.execute("""
-                    SELECT id, name, url, is_active, last_processed
-                    FROM rss_feeds 
-                    WHERE is_active = 1
+                    SELECT id, name, url, is_enabled, last_success_utc
+                    FROM feed_state 
+                    WHERE is_enabled = 1
                     ORDER BY name
                 """)
                 feeds = [dict(row) for row in cursor.fetchall()]
@@ -113,8 +113,12 @@ class EjecutarTodoProcessor:
                 cursor = conn.execute("SELECT COUNT(*) FROM articles")
                 articulos_antes = cursor.fetchone()[0]
             
+            # Obtener keywords activas
+            from app.storage import get_all_active_keywords
+            keywords = get_all_active_keywords()
+            
             # Procesar el feed
-            result = process_feed(feed['url'], feed['name'])
+            process_feed(feed, keywords)
             
             # Contar artículos después del procesamiento
             with conn:
@@ -148,10 +152,10 @@ class EjecutarTodoProcessor:
             # Obtener artículos recientes
             with conn:
                 cursor = conn.execute("""
-                    SELECT id, title, full_content, url, published_date
+                    SELECT id, title, full_content, link, published_utc
                     FROM articles 
-                    WHERE created_at >= ?
-                    ORDER BY created_at DESC
+                    WHERE inserted_utc >= ?
+                    ORDER BY inserted_utc DESC
                 """, (fecha_limite,))
                 articulos = [dict(row) for row in cursor.fetchall()]
             
@@ -166,7 +170,7 @@ class EjecutarTodoProcessor:
                         articulo['id'],
                         articulo['title'],
                         articulo['full_content'] or '',
-                        articulo['url']
+                        articulo['link']
                     )
                     
                     if menciones:
