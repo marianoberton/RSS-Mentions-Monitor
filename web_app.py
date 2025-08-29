@@ -749,8 +749,17 @@ def manage_candidates():
     except Exception as e:
         logger.error(f"Error al cargar gestión de candidatos: {e}")
         flash(f"Error al cargar gestión de candidatos: {e}", 'error')
+        
+        # Obtener alianzas para el formulario incluso en caso de error
+        try:
+            from app.storage import get_all_electoral_alliances
+            alliances = get_all_electoral_alliances()
+        except:
+            alliances = []
+        
         return render_template('manage_candidates.html', 
                              candidates=[],
+                             alliances=alliances,
                              current_time=datetime.now())
 
 @app.route('/candidates/add', methods=['POST'])
@@ -825,10 +834,13 @@ def add_candidate():
         for keyword in unique_keywords:
             add_candidate_keyword(candidate_id, keyword)
         
-        # Informar al usuario sobre las keywords generadas
+        # Informar al usuario sobre las keywords generadas y próxima búsqueda
         auto_count = len(auto_keywords)
         manual_count = len(manual_keywords)
-        flash(f"Candidato '{name}' agregado exitosamente con {auto_count} keywords automáticas y {manual_count} manuales", 'success')
+        total_keywords = len(unique_keywords)
+        
+        flash(f"✅ Candidato '{name}' agregado exitosamente con {total_keywords} keywords ({auto_count} automáticas, {manual_count} manuales)", 'success')
+        flash(f"🔍 Las menciones de este candidato se buscarán automáticamente en el próximo procesamiento de feeds. Usa 'Ejecutar Todo' en Herramientas para buscar inmediatamente.", 'info')
     except Exception as e:
         logger.error(f"Error al agregar candidato: {e}")
         flash(f"Error al agregar candidato: {e}", 'error')
@@ -1258,6 +1270,82 @@ def health_check():
             'timestamp': datetime.now().isoformat()
         }), 500
 
+@app.route('/status')
+def status():
+    """Página de estado del sistema en tiempo real."""
+    try:
+        conn = get_db_connection()
+        
+        # Estadísticas generales
+        with conn:
+            # Contar feeds activos
+            cursor = conn.execute("SELECT COUNT(*) FROM rss_feeds WHERE is_active = 1")
+            feeds_activos = cursor.fetchone()[0]
+            
+            # Contar candidatos activos
+            cursor = conn.execute("SELECT COUNT(*) FROM candidates WHERE is_active = 1")
+            candidatos_activos = cursor.fetchone()[0]
+            
+            # Contar artículos totales y recientes (últimas 24h)
+            cursor = conn.execute("SELECT COUNT(*) FROM articles")
+            total_articulos = cursor.fetchone()[0]
+            
+            cursor = conn.execute("""
+                SELECT COUNT(*) FROM articles 
+                WHERE created_at >= datetime('now', '-24 hours')
+            """)
+            articulos_24h = cursor.fetchone()[0]
+            
+            # Contar menciones totales y recientes
+            cursor = conn.execute("SELECT COUNT(*) FROM mentions")
+            total_menciones = cursor.fetchone()[0]
+            
+            cursor = conn.execute("""
+                SELECT COUNT(*) FROM mentions 
+                WHERE created_at >= datetime('now', '-24 hours')
+            """)
+            menciones_24h = cursor.fetchone()[0]
+            
+            # Último procesamiento de feeds
+            cursor = conn.execute("""
+                SELECT name, last_processed 
+                FROM rss_feeds 
+                WHERE last_processed IS NOT NULL 
+                ORDER BY last_processed DESC 
+                LIMIT 1
+            """)
+            ultimo_feed = cursor.fetchone()
+            
+            # Últimas menciones encontradas
+            cursor = conn.execute("""
+                SELECT m.created_at, c.name as candidate_name, a.title, m.context
+                FROM mentions m
+                JOIN candidates c ON m.candidate_id = c.id
+                JOIN articles a ON m.article_id = a.id
+                ORDER BY m.created_at DESC
+                LIMIT 5
+            """)
+            ultimas_menciones = [dict(row) for row in cursor.fetchall()]
+        
+        status_data = {
+            'feeds_activos': feeds_activos,
+            'candidatos_activos': candidatos_activos,
+            'total_articulos': total_articulos,
+            'articulos_24h': articulos_24h,
+            'total_menciones': total_menciones,
+            'menciones_24h': menciones_24h,
+            'ultimo_feed': dict(ultimo_feed) if ultimo_feed else None,
+            'ultimas_menciones': ultimas_menciones,
+            'timestamp': datetime.now()
+        }
+        
+        return render_template('status.html', status=status_data, current_time=datetime.now())
+        
+    except Exception as e:
+        logger.error(f"Error en página de estado: {e}")
+        flash(f"Error al cargar estado del sistema: {e}", 'error')
+        return render_template('status.html', status={}, current_time=datetime.now())
+
 @app.route('/tools')
 def tools_dashboard():
     """Dashboard de herramientas y diagnósticos."""
@@ -1361,6 +1449,13 @@ def tools_dashboard():
                 'script': 'fix_candidate_dropdowns.py',
                 'category': 'diagnostico',
                 'icon': '🔧'
+            },
+            {
+                'name': 'Ejecutar Todo',
+                'description': 'Procesa todos los feeds, guarda artículos y busca menciones con estadísticas detalladas',
+                'script': 'ejecutar_todo.py',
+                'category': 'procesamiento',
+                'icon': '🚀'
             }
         ]
         
@@ -1392,7 +1487,8 @@ def run_tool(script_name):
             'migrate_db.py',
             'debug_api_endpoints.py',
             'debug_frontend.py',
-            'fix_candidate_dropdowns.py'
+            'fix_candidate_dropdowns.py',
+            'ejecutar_todo.py'
         ]
         
         if script_name not in allowed_scripts:

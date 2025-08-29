@@ -221,6 +221,11 @@
                             </a>
                         </li>
                         <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'status' %}active{% endif %}" href="{{ url_for('status') }}">
+                                <i class="bi bi-activity"></i> Estado del Sistema
+                            </a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link {% if request.endpoint == 'feeds_management' %}active{% endif %}" href="{{ url_for('feeds_management') }}">
                                 <i class="bi bi-rss-fill"></i> Feeds RSS
                             </a>

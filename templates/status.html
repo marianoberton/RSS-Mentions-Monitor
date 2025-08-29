@@ -1,0 +1,351 @@
+{% extends "base.html" %}
+
+{% block title %}Estado del Sistema - RSS Mentions Monitor{% endblock %}
+
+{% block content %}
+<style>
+.status-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 15px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.metric-card {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 15px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    border-left: 4px solid #007bff;
+    transition: transform 0.2s;
+}
+
+.metric-card:hover {
+    transform: translateY(-2px);
+}
+
+.metric-number {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: #007bff;
+    margin-bottom: 5px;
+}
+
+.metric-label {
+    color: #6c757d;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.metric-change {
+    font-size: 0.8rem;
+    margin-top: 5px;
+}
+
+.metric-change.positive {
+    color: #28a745;
+}
+
+.metric-change.neutral {
+    color: #6c757d;
+}
+
+.status-indicator {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-right: 8px;
+}
+
+.status-active {
+    background-color: #28a745;
+    animation: pulse 2s infinite;
+}
+
+.status-inactive {
+    background-color: #dc3545;
+}
+
+.status-warning {
+    background-color: #ffc107;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+.mention-item {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 10px;
+    border-left: 3px solid #007bff;
+}
+
+.mention-candidate {
+    font-weight: bold;
+    color: #007bff;
+}
+
+.mention-time {
+    font-size: 0.8rem;
+    color: #6c757d;
+}
+
+.refresh-btn {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+}
+
+.auto-refresh {
+    background: #e9ecef;
+    border-radius: 20px;
+    padding: 8px 15px;
+    font-size: 0.8rem;
+    color: #6c757d;
+    margin-bottom: 20px;
+}
+</style>
+
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="status-card">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h2 class="mb-2">
+                    <span class="status-indicator status-active"></span>
+                    Estado del Sistema RSS Mentions Monitor
+                </h2>
+                <p class="mb-0">Monitoreo en tiempo real del sistema de detección de menciones</p>
+            </div>
+            <div class="col-md-4 text-end">
+                <div class="auto-refresh">
+                    <i class="bi bi-clock"></i> Actualizado: {{ current_time.strftime('%H:%M:%S') }}
+                </div>
+                <a href="{{ url_for('tools_dashboard') }}" class="btn btn-light btn-sm">
+                    <i class="bi bi-tools"></i> Herramientas
+                </a>
+            </div>
+        </div>
+    </div>
+
+    {% if status %}
+    <!-- Métricas Principales -->
+    <div class="row">
+        <div class="col-md-3">
+            <div class="metric-card">
+                <div class="metric-number">{{ status.feeds_activos }}</div>
+                <div class="metric-label">Feeds Activos</div>
+                <div class="metric-change neutral">
+                    <i class="bi bi-rss"></i> Monitoreando fuentes RSS
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card">
+                <div class="metric-number">{{ status.candidatos_activos }}</div>
+                <div class="metric-label">Candidatos Activos</div>
+                <div class="metric-change neutral">
+                    <i class="bi bi-people"></i> Con keywords configuradas
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card">
+                <div class="metric-number">{{ status.total_articulos }}</div>
+                <div class="metric-label">Artículos Totales</div>
+                <div class="metric-change positive">
+                    <i class="bi bi-arrow-up"></i> +{{ status.articulos_24h }} en 24h
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card">
+                <div class="metric-number">{{ status.total_menciones }}</div>
+                <div class="metric-label">Menciones Totales</div>
+                <div class="metric-change positive">
+                    <i class="bi bi-arrow-up"></i> +{{ status.menciones_24h }} en 24h
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Estado del Procesamiento -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-activity"></i> Estado del Procesamiento
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if status.ultimo_feed %}
+                        <div class="d-flex align-items-center mb-3">
+                            <span class="status-indicator status-active"></span>
+                            <div>
+                                <strong>Último Feed Procesado:</strong> {{ status.ultimo_feed.name }}<br>
+                                <small class="text-muted">
+                                    {{ status.ultimo_feed.last_processed }}
+                                </small>
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="d-flex align-items-center mb-3">
+                            <span class="status-indicator status-warning"></span>
+                            <div>
+                                <strong>Sin procesamiento reciente</strong><br>
+                                <small class="text-muted">No se han procesado feeds recientemente</small>
+                            </div>
+                        </div>
+                    {% endif %}
+                    
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <div class="border-end">
+                                <h4 class="text-primary">{{ status.articulos_24h }}</h4>
+                                <small class="text-muted">Artículos (24h)</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <h4 class="text-success">{{ status.menciones_24h }}</h4>
+                            <small class="text-muted">Menciones (24h)</small>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <a href="{{ url_for('tools_dashboard') }}" class="btn btn-primary btn-sm">
+                            <i class="bi bi-play-fill"></i> Ejecutar Procesamiento Manual
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-search"></i> Últimas Menciones Encontradas
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if status.ultimas_menciones %}
+                        {% for mencion in status.ultimas_menciones %}
+                            <div class="mention-item">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div class="flex-grow-1">
+                                        <div class="mention-candidate">{{ mencion.candidate_name }}</div>
+                                        <div class="mention-title">{{ mencion.title[:80] }}{% if mencion.title|length > 80 %}...{% endif %}</div>
+                                        {% if mencion.context %}
+                                            <small class="text-muted">"{{ mencion.context[:100] }}{% if mencion.context|length > 100 %}...{% endif %}"</small>
+                                        {% endif %}
+                                    </div>
+                                    <div class="mention-time">
+                                        {{ mencion.created_at }}
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                        
+                        <div class="text-center mt-3">
+                            <a href="{{ url_for('dashboard') }}" class="btn btn-outline-primary btn-sm">
+                                <i class="bi bi-list"></i> Ver Todas las Menciones
+                            </a>
+                        </div>
+                    {% else %}
+                        <div class="text-center text-muted py-4">
+                            <i class="bi bi-search" style="font-size: 2rem;"></i>
+                            <p class="mt-2">No se han encontrado menciones recientes</p>
+                            <a href="{{ url_for('tools_dashboard') }}" class="btn btn-primary btn-sm">
+                                <i class="bi bi-play-fill"></i> Ejecutar Búsqueda
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Acciones Rápidas -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-lightning-fill"></i> Acciones Rápidas
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <a href="{{ url_for('tools_dashboard') }}" class="btn btn-primary w-100 mb-2">
+                                <i class="bi bi-tools"></i><br>
+                                <small>Herramientas</small>
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{{ url_for('manage_candidates') }}" class="btn btn-success w-100 mb-2">
+                                <i class="bi bi-people"></i><br>
+                                <small>Candidatos</small>
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{{ url_for('manage_feeds') }}" class="btn btn-info w-100 mb-2">
+                                <i class="bi bi-rss"></i><br>
+                                <small>Feeds RSS</small>
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{{ url_for('view_logs') }}" class="btn btn-warning w-100 mb-2">
+                                <i class="bi bi-file-text"></i><br>
+                                <small>Logs</small>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    {% else %}
+    <div class="alert alert-warning" role="alert">
+        <i class="bi bi-exclamation-triangle"></i>
+        No se pudo cargar la información del estado del sistema.
+    </div>
+    {% endif %}
+</div>
+
+<!-- Botón de Actualización -->
+<button class="btn btn-primary refresh-btn" onclick="location.reload()" title="Actualizar">
+    <i class="bi bi-arrow-clockwise"></i>
+</button>
+
+<script>
+// Auto-refresh cada 30 segundos
+setTimeout(function() {
+    location.reload();
+}, 30000);
+
+// Mostrar indicador de carga al actualizar
+document.querySelector('.refresh-btn').addEventListener('click', function() {
+    this.innerHTML = '<i class="bi bi-arrow-clockwise" style="animation: spin 1s linear infinite;"></i>';
+});
+</script>
+
+<style>
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+</style>
+{% endblock %}
