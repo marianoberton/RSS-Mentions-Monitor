@@ -19,6 +19,7 @@ services:
       - .env
     command: >
       bash -c "
+        dpkg --configure -a &&
         apt-get update && apt-get install -y gcc curl &&
         pip install --no-cache-dir -r requirements.txt &&
         chmod +x start.sh &&
