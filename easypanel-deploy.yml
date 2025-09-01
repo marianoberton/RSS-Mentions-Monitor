@@ -1,8 +1,6 @@
 # EasyPanel Deployment Configuration
 # Usar este archivo para deployment directo en EasyPanel
 
-version: '3.8'
-
 services:
   rss-monitor:
     image: python:3.11-slim
